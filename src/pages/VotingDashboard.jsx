@@ -109,7 +109,7 @@ const VotingDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 to-purple-900">
-      <Header />
+      {/* <Header /> */}
       
       <div className="container mx-auto px-4 py-8">
         <motion.div 

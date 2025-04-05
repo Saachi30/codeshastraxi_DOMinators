@@ -26,8 +26,8 @@ export const VotingProvider = ({ children }) => {
         description: 'Vote for your preferred city council candidate',
         votingMethod: 'ranked',
         status: 'active',
-        startDate: '2025-01-01',
-        endDate: '2025-01-15',
+        startDate: '2025-04-01',
+        endDate: '2025-08-15',
         participants: 156,
         candidates: [ // Renamed from options to candidates to match component usage
           { id: 1, name: 'Alice Johnson', description: 'Environmental focus' },
@@ -35,12 +35,12 @@ export const VotingProvider = ({ children }) => {
           { id: 3, name: 'Carol Davis', description: 'Public safety' },
           { id: 4, name: 'David Wilson', description: 'Education reform' }
         ],
-        geoFenced: true,
-        geoFence: {
-          latitude: 40.7128,
-          longitude: -74.0060,
-          radiusKm: 50
-        }
+        geoFenced: false,
+        // geoFence: {
+        //   latitude: 40.7128,
+        //   longitude: -74.0060,
+        //   radiusKm: 50
+        // }
       },
       {
         id: 'election-2',
