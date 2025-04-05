@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { initializeApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { auth } from '../src/services/firebase';
 
 // Context Providers
 import { Web3Provider } from './contexts/Web3Context';
@@ -23,23 +24,13 @@ import CreateTopic from './pages/CreateTopic';
 import NFTManager from './pages/NFT';
 import AdminPage  from './pages/AdminPage';
 // Components
+import VoiceAssistantPage from './pages/VoiceAssistantPage';
+
+// Voice Assistant
+
 import VoiceAssistant from './components/VoiceAssistant';
 import LoadingScreen from './components/LoadingScreen';
-
-// Initialize Firebase
-const firebaseConfig = {
-  apiKey: "AIzaSyC89Uh1pB6-7Xr3WyblV2_v556XttF0tTY",
-  authDomain: "codeshashtra-2dc16.firebaseapp.com",
-  projectId: "codeshashtra-2dc16",
-  storageBucket: "codeshashtra-2dc16.firebaseapp.com",
-  messagingSenderId: "285363200158",
-  appId: "1:285363200158:web:ebeca10a7dcb9e1db21b8f"
-};
-
-// Initialize Firebase app
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+import HomePage from './pages/HOME.JSX';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -150,6 +141,14 @@ function App() {
                   } 
                 />
                 <Route 
+                  path="/home" 
+                  element={
+                    <ProtectedRoute>
+                      <HomePage />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
                   path="/vote" 
                   element={
                     <ProtectedRoute>
@@ -214,6 +213,13 @@ function App() {
                     </AdminRoute>
                   } 
                 />
+
+                <Route path="/dashboard" element={<VotingDashboard />} />
+                <Route path="/vote/:electionId" element={<VoteCasting />} />
+                <Route path="/confirmation" element={<Confirmation />} />
+                <Route path="/analytics" element={<AnalyticsDashboard />} />
+                <Route path="/admin" element={<AdminDispute />} />
+                <Route path="/voiceassitantpage" element={<VoiceAssistantPage />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </div>
