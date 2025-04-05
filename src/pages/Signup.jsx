@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
-import { Cloudinary } from '@cloudinary/url-gen';
-import { AdvancedImage } from '@cloudinary/react';
 import { useEffect } from 'react';
 
 const Signup = ({ toggleAuth }) => {
@@ -14,13 +12,6 @@ const Signup = ({ toggleAuth }) => {
   const [progress, setProgress] = useState(0);
   const fileInputRef = useRef(null);
   const [previewUrl, setPreviewUrl] = useState(null);
-  
-  // Initialize Cloudinary
-  const cld = new Cloudinary({
-    cloud: { 
-      cloudName: 'dngawcdi1' 
-    }
-  });
   
   // Form fields
   const [formData, setFormData] = useState({
@@ -53,22 +44,35 @@ const Signup = ({ toggleAuth }) => {
     }
   };
   
-  const uploadToCloudinary = async (file) => {
+  const uploadToPinata = async (file) => {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('upload_preset', 'ml_default'); // Your unsigned upload preset
-      formData.append('api_key', '259315469892344');
       
-      // Using FormData with XMLHttpRequest to maintain compatibility with your approach
+      const pinataMetadata = JSON.stringify({
+        name: `aadhar-${Date.now()}`,
+      });
+      formData.append('pinataMetadata', pinataMetadata);
+      
+      const pinataOptions = JSON.stringify({
+        cidVersion: 0,
+      });
+      formData.append('pinataOptions', pinataOptions);
+      
+      // Using XMLHttpRequest to track upload progress
       return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
-        xhr.open('POST', `https://api.cloudinary.com/v1_1/dngawcdi1/image/upload`);
+        xhr.open('POST', 'https://api.pinata.cloud/pinning/pinFileToIPFS');
+        
+        // Set headers
+        xhr.setRequestHeader('pinata_api_key', '8c60abd9f27467cf2101');
+        xhr.setRequestHeader('pinata_secret_api_key', 'd1f1282cb1531dcdd08f0b33e2dad886e908e878b8733571e5b9d4f36f90eae9'); // You'll need to add this
         
         xhr.onload = () => {
           if (xhr.status === 200) {
             const response = JSON.parse(xhr.responseText);
-            resolve(response.secure_url);
+            // Return IPFS URL for the uploaded file
+            resolve(`https://gateway.pinata.cloud/ipfs/${response.IpfsHash}`);
           } else {
             reject(new Error('Upload failed'));
           }
@@ -78,11 +82,19 @@ const Signup = ({ toggleAuth }) => {
           reject(new Error('Upload failed'));
         };
         
+        // Optional: track upload progress
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const percentComplete = Math.round((event.loaded / event.total) * 90);
+            setProgress(percentComplete);
+          }
+        };
+        
         xhr.send(formData);
       });
     } catch (error) {
-      console.error('Cloudinary upload error:', error);
-      throw new Error('Failed to upload image');
+      console.error('Pinata upload error:', error);
+      throw new Error('Failed to upload image to IPFS');
     }
   };
   
@@ -125,9 +137,9 @@ const Signup = ({ toggleAuth }) => {
         });
       }, 500);
       
-      // 1. Upload Aadhar card to Cloudinary
-      setMessage('Uploading your documents...');
-      const imageUrl = await uploadToCloudinary(formData.aadharCard);
+      // 1. Upload Aadhar card to Pinata IPFS
+      setMessage('Uploading your documents to IPFS...');
+      const ipfsUrl = await uploadToPinata(formData.aadharCard);
       
       // 2. Create Firebase user account
       setMessage('Setting up your account...');
@@ -144,7 +156,7 @@ const Signup = ({ toggleAuth }) => {
         age: formData.age,
         gender: formData.gender,
         location: formData.location,
-        aadharCardUrl: imageUrl,
+        aadharCardUrl: ipfsUrl,
         createdAt: new Date().toISOString()
       });
       
@@ -166,7 +178,7 @@ const Signup = ({ toggleAuth }) => {
     }
   };
   
-  // Render document preview using Cloudinary SDK if a document is uploaded
+  // Render document preview if a document is uploaded
   const renderDocumentPreview = () => {
     if (previewUrl) {
       return (
