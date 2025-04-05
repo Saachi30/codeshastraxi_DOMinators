@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ethers } from 'ethers';
-import ZKVoteChatbot from './AiAgent';
+import MusicRightsChatbot from './AiAgent';
 const contractAddress = "0x12b4166e7C81dF1b47722746bD511Fca44dcb7EC";
 
 const VotingDashboard = () => {
@@ -187,7 +187,7 @@ const VotingDashboard = () => {
   return (
     
     <div className="min-h-screen bg-gradient-to-br from-blue-300 to-indigo-300">
-      <ZKVoteChatbot />
+      <MusicRightsChatbot/>
       <div className="container mx-auto px-4 py-8">
         <div className="bg-white rounded-xl p-6 shadow-xl">
           <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">

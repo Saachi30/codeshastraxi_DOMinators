@@ -10,6 +10,10 @@ const DisputeManagement = () => {
   const [isValidator, setIsValidator] = useState(false);
   const [disputeCredits, setDisputeCredits] = useState(0);
   
+  // Contract address and ABI
+  const contractAddress = "0x12b4166e7C81dF1b47722746bD511Fca44dcb7EC";
+  const contractABI = abi;
+  
   // Dispute states
   const [topicId, setTopicId] = useState('');
   const [nullifier, setNullifier] = useState('');
@@ -31,6 +35,7 @@ const DisputeManagement = () => {
     const init = async () => {
       if (window.ethereum) {
         try {
+          // Request account access
           const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
           const provider = new ethers.providers.Web3Provider(window.ethereum);
           const signer = provider.getSigner();
@@ -47,13 +52,19 @@ const DisputeManagement = () => {
           
           // Load dispute credits
           if (validatorStatus) {
-            const credits = await contract.getVoterDetails(ethers.utils.formatBytes32String(accounts[0]));
+            const credits = await contract.getValidatorDetails(accounts[0]);
             setDisputeCredits(credits.disputeCredits.toString());
           }
           
+          // Listen for account changes
           window.ethereum.on('accountsChanged', (accounts) => {
-            setAccount(accounts[0]);
-            window.location.reload();
+            if (accounts.length > 0) {
+              setAccount(accounts[0]);
+              window.location.reload();
+            } else {
+              setIsConnected(false);
+              setAccount('');
+            }
           });
         } catch (error) {
           console.error("Connection error:", error);
@@ -75,6 +86,11 @@ const DisputeManagement = () => {
 
   const createDispute = async (e) => {
     e.preventDefault();
+    if (!contract || !isConnected) {
+      setError("Please connect your wallet first");
+      return;
+    }
+    
     setIsLoading(true);
     setError('');
     setSuccess('');
@@ -82,8 +98,8 @@ const DisputeManagement = () => {
     try {
       const tx = await contract.raiseDispute(
         ethers.BigNumber.from(topicId),
-        ethers.utils.arrayify(`0x${nullifier.replace(/^0x/, '')}`),
-        ethers.utils.arrayify(`0x${voterCommitment.replace(/^0x/, '')}`),
+        ethers.utils.hexlify(nullifier),
+        ethers.utils.hexlify(voterCommitment),
         reason
       );
       
@@ -93,7 +109,7 @@ const DisputeManagement = () => {
       
       // Refresh credits if validator
       if (isValidator) {
-        const credits = await contract.getVoterDetails(ethers.utils.formatBytes32String(account));
+        const credits = await contract.getValidatorDetails(account);
         setDisputeCredits(credits.disputeCredits.toString());
       }
       
@@ -103,7 +119,8 @@ const DisputeManagement = () => {
       setVoterCommitment('');
       setReason('');
     } catch (err) {
-      setError(err.message);
+      console.error("Error raising dispute:", err);
+      setError(err.message || "Failed to raise dispute");
     } finally {
       setIsLoading(false);
     }
@@ -111,6 +128,11 @@ const DisputeManagement = () => {
 
   const resolveDispute = async (e) => {
     e.preventDefault();
+    if (!contract || !isConnected || !isValidator) {
+      setError("Validator privileges required");
+      return;
+    }
+    
     setIsLoading(true);
     setError('');
     setSuccess('');
@@ -127,7 +149,7 @@ const DisputeManagement = () => {
       setSuccess('Dispute resolved successfully!');
       
       // Refresh credits
-      const credits = await contract.getVoterDetails(ethers.utils.formatBytes32String(account));
+      const credits = await contract.getValidatorDetails(account);
       setDisputeCredits(credits.disputeCredits.toString());
       
       // Reset form
@@ -135,7 +157,8 @@ const DisputeManagement = () => {
       setStatus(0);
       setResolution('');
     } catch (err) {
-      setError(err.message);
+      console.error("Error resolving dispute:", err);
+      setError(err.message || "Failed to resolve dispute");
     } finally {
       setIsLoading(false);
     }
@@ -143,6 +166,11 @@ const DisputeManagement = () => {
 
   const getDisputeDetails = async (e) => {
     e.preventDefault();
+    if (!contract || !isConnected) {
+      setError("Please connect your wallet first");
+      return;
+    }
+    
     setIsLoading(true);
     setError('');
     
@@ -158,7 +186,8 @@ const DisputeManagement = () => {
         resolution: details.resolution
       });
     } catch (err) {
-      setError(err.message);
+      console.error("Error fetching dispute details:", err);
+      setError(err.message || "Failed to fetch dispute details");
     } finally {
       setIsLoading(false);
     }
