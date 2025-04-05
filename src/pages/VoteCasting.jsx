@@ -1,616 +1,419 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { ethers } from 'ethers';
-import { useVoting } from '../contexts/VotingContext';
-import { useAuth } from '../contexts/AuthContext';
 
-// Smart contract ABI (simplified for the vote function)
+// Define the contract ABI and address
+const contractAddress = '0x12b4166e7C81dF1b47722746bD511Fca44dcb7EC';
 const contractABI = [
-  {
-    "inputs": [
-      {"internalType": "uint256", "name": "topicId", "type": "uint256"},
-      {"internalType": "bytes32", "name": "nullifier", "type": "bytes32"},
-      {"internalType": "bytes32", "name": "voterCommitment", "type": "bytes32"},
-      {"internalType": "string", "name": "locationProof", "type": "string"},
-      {"internalType": "uint256[]", "name": "voteData", "type": "uint256[]"}
-    ],
-    "name": "vote",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "topicCount",
-    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-    "stateMutability": "view",
-    "type": "function"
-  }
+  // Functions we'll need
+  "function getTopicDetails(uint256 topicId) view returns (string name, string description, string[] choices, uint8 method, uint256 startTime, uint256 endTime, string location, uint256 minVotingPower, bool isVotingOpen, uint256[] voteCounts)",
+  "function vote(uint256 topicId, bytes32 nullifier, bytes32 voterCommitment, string locationProof, uint256[] voteData)"
 ];
 
-const VoteCasting = () => {
-  const { electionId } = useParams();
-  const navigate = useNavigate();
-  const { currentUser } = useAuth();
-  const { currentElection, fetchElection } = useVoting();
-  
-  const [loading, setLoading] = useState(true);
-  const [votingMethod, setVotingMethod] = useState(null);
-  const [candidates, setCandidates] = useState([]);
-  const [credits] = useState(16);
-  const [showBiasInfo, setShowBiasInfo] = useState(false);
-  const [userEmotion, setUserEmotion] = useState('neutral');
-  const [showHelp, setShowHelp] = useState(false);
-  
-  const [approvalVotes, setApprovalVotes] = useState({});
-  const [rankedVotes, setRankedVotes] = useState([]);
-  const [quadraticVotes, setQuadraticVotes] = useState({});
-  const [remainingCredits, setRemainingCredits] = useState(16);
-  
-  const [voiceActive, setVoiceActive] = useState(false);
-  const [voiceMessage, setVoiceMessage] = useState('');
+const ZKVote = () => {
+  const [provider, setProvider] = useState(null);
+  const [signer, setSigner] = useState(null);
   const [contract, setContract] = useState(null);
-  const [currentTopicId, setCurrentTopicId] = useState(null);
-  const [voterCommitment, setVoterCommitment] = useState(ethers.utils.formatBytes32String("default-commitment"));
-  const [nullifier, setNullifier] = useState(ethers.utils.formatBytes32String("default-nullifier"));
-
-  // Initialize ethers provider and contract
-  useEffect(() => {
-    const initEthers = async () => {
-      if (window.ethereum) {
-        try {
-          // Request account access if needed
-          await window.ethereum.request({ method: 'eth_requestAccounts' });
-          
-          // Create provider
-          const provider = new ethers.providers.Web3Provider(window.ethereum);
-          
-          // Get signer
-          const signer = provider.getSigner();
-          
-          // Contract address - replace with your actual contract address
-          const contractAddress = '0x12b4166e7C81dF1b47722746bD511Fca44dcb7EC';
-          
-          // Create contract instance
-          const votingContract = new ethers.Contract(contractAddress, contractABI, signer);
-          setContract(votingContract);
-          
-          // Get current topic count (assuming the electionId matches the topicId)
-          const topicId = await votingContract.topicCount();
-          setCurrentTopicId(topicId.toNumber());
-          
-        } catch (error) {
-          console.error("Error initializing ethers:", error);
-        }
-      } else {
-        console.error("Ethereum provider not found. Install MetaMask.");
-      }
-    };
-    
-    initEthers();
-  }, []);
-
-  useEffect(() => {
-    const loadElectionData = async () => {
-      if (!currentElection || currentElection.id !== electionId) {
-        try {
-          const election = await fetchElection(electionId);
-          setVotingMethod(election.votingMethod);
-          setCandidates(election.candidates);
-        } catch (error) {
-          console.error("Error fetching election:", error);
-        } finally {
-          setLoading(false);
-        }
-      } else {
-        setVotingMethod(currentElection.votingMethod);
-        setCandidates(currentElection.candidates);
-        setLoading(false);
-      }
-    };
-    
-    loadElectionData();
-    
-    const emotionInterval = setInterval(() => {
-      const emotions = ['neutral', 'confused', 'interested', 'uncertain'];
-      const newEmotion = emotions[Math.floor(Math.random() * emotions.length)];
-      setUserEmotion(newEmotion);
-      
-      if (newEmotion === 'confused' && Math.random() > 0.7) {
-        setShowHelp(true);
-      }
-    }, 5000);
-    
-    return () => clearInterval(emotionInterval);
-  }, [electionId, currentElection, fetchElection]);
+  const [connected, setConnected] = useState(false);
+  const [account, setAccount] = useState('');
+  const [topicId, setTopicId] = useState('');
+  const [topicDetails, setTopicDetails] = useState(null);
+  const [nullifier, setNullifier] = useState('');
+  const [commitment, setCommitment] = useState('');
+  const [locationProof, setLocationProof] = useState('');
+  const [selectedChoices, setSelectedChoices] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState(''); // 'success' or 'error'
   
-  useEffect(() => {
-    if (votingMethod === 'quadratic') {
-      let used = 0;
-      Object.values(quadraticVotes).forEach(votes => {
-        used += votes * votes;
-      });
-      setRemainingCredits(credits - used);
-    }
-  }, [quadraticVotes, credits, votingMethod]);
-  
-  const handleApprovalVote = (candidateId) => {
-    setApprovalVotes(prev => ({
-      ...prev,
-      [candidateId]: !prev[candidateId]
-    }));
-  };
-  
-  const handleRankedVote = (candidateId, rank) => {
-    const newRanked = [...rankedVotes.filter(c => c !== candidateId)];
-    if (rank >= 0 && rank < candidates.length) {
-      newRanked.splice(rank, 0, candidateId);
-      setRankedVotes(newRanked);
-    }
-  };
-  
-  const handleQuadraticVote = (candidateId, direction) => {
-    const currentVotes = quadraticVotes[candidateId] || 0;
-    let newVotes = currentVotes;
-    
-    if (direction === 'increase') {
-      const costToIncrease = (currentVotes + 1) * (currentVotes + 1) - currentVotes * currentVotes;
-      if (costToIncrease <= remainingCredits) {
-        newVotes = currentVotes + 1;
-      }
-    } else if (direction === 'decrease' && currentVotes > 0) {
-      newVotes = currentVotes - 1;
-    }
-    
-    setQuadraticVotes(prev => ({
-      ...prev,
-      [candidateId]: newVotes
-    }));
-  };
-  
-  const submitVoteToBlockchain = async (voteData) => {
-    if (!contract || currentTopicId === null) {
-      console.error("Contract not initialized or topic ID not available");
-      return false;
-    }
-
+  // Connect wallet
+  const connectWallet = async () => {
     try {
-      // Convert vote data to the correct format
-      const formattedVoteData = Array.isArray(voteData) ? 
-        voteData : 
-        Object.entries(voteData).map(([_, value]) => value);
+      if (window.ethereum) {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const signer = provider.getSigner();
+        const address = await signer.getAddress();
+        const contract = new ethers.Contract(contractAddress, contractABI, signer);
+        
+        setProvider(provider);
+        setSigner(signer);
+        setContract(contract);
+        setAccount(address);
+        setConnected(true);
+        
+        setMessage('Wallet connected successfully!');
+        setMessageType('success');
+      } else {
+        setMessage('Please install MetaMask!');
+        setMessageType('error');
+      }
+    } catch (error) {
+      console.error(error);
+      setMessage('Error connecting wallet: ' + error.message);
+      setMessageType('error');
+    }
+  };
+  
+  // Fetch topic details
+  const fetchTopicDetails = async () => {
+    if (!contract || !topicId) return;
+    
+    try {
+      setLoading(true);
+      const details = await contract.getTopicDetails(topicId);
+      setTopicDetails({
+        name: details.name,
+        description: details.description,
+        choices: details.choices,
+        method: details.method,
+        startTime: new Date(details.startTime.toNumber() * 1000).toLocaleString(),
+        endTime: new Date(details.endTime.toNumber() * 1000).toLocaleString(),
+        location: details.location,
+        minVotingPower: details.minVotingPower.toString(),
+        isVotingOpen: details.isVotingOpen,
+        voteCounts: details.voteCounts.map(count => count.toString())
+      });
+      setLoading(false);
+      setMessage('Topic details loaded!');
+      setMessageType('success');
+    } catch (error) {
+      console.error(error);
+      setLoading(false);
+      setMessage('Error fetching topic details: ' + error.message);
+      setMessageType('error');
+    }
+  };
+  
+  // Submit vote
+  const submitVote = async () => {
+    if (!contract || !topicId || !nullifier || !commitment || !topicDetails) {
+      setMessage('Please fill all required fields');
+      setMessageType('error');
+      return;
+    }
+    
+    if (!selectedChoices.length) {
+      setMessage('Please select at least one choice');
+      setMessageType('error');
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      
+      // Modified code for handling hex bytes32 values
+let nullifierBytes32, commitmentBytes32;
 
-      // Location proof can be empty or contain relevant data
-      const locationProof = "on-chain-vote-proof";
+// Check if nullifier and commitment are already in hex format
+if (nullifier.startsWith('0x') && nullifier.length === 66) {
+  nullifierBytes32 = nullifier; // Already in bytes32 format
+} else {
+  nullifierBytes32 = ethers.utils.formatBytes32String(nullifier);
+}
 
-      // Call the vote function on the smart contract
+if (commitment.startsWith('0x') && commitment.length === 66) {
+  commitmentBytes32 = commitment; // Already in bytes32 format
+} else {
+  commitmentBytes32 = ethers.utils.formatBytes32String(commitment);
+}
+      // Prepare voteData based on voting method
+      // 0: Single choice, 1: Multiple choice, 2: Ranked choice, 3: Quadratic
+      let voteData = [];
+      
+      if (topicDetails.method === 0) {
+        // Single choice - just the index of the selected choice
+        voteData = [parseInt(selectedChoices[0])];
+      } else if (topicDetails.method === 1) {
+        // Multiple choice - array of selected indices
+        voteData = selectedChoices.map(choice => parseInt(choice));
+      } else if (topicDetails.method === 2) {
+        // Ranked choice - array of [index, rank] pairs
+        voteData = selectedChoices.map((choice, index) => [parseInt(choice), index + 1]).flat();
+      } else if (topicDetails.method === 3) {
+        // Quadratic voting - array of [index, votes] pairs
+        voteData = selectedChoices.map(choice => [parseInt(choice), 1]).flat();
+      }
+      
+      // Call vote function
       const tx = await contract.vote(
-        currentTopicId,
-        nullifier,
-        voterCommitment,
-        locationProof,
-        formattedVoteData
+        topicId,
+        nullifierBytes32,
+        commitmentBytes32,
+        locationProof || '',
+        voteData
       );
-
-      // Wait for transaction to be mined
+      
       await tx.wait();
       
-      return true;
+      setLoading(false);
+      setMessage('Vote submitted successfully!');
+      setMessageType('success');
     } catch (error) {
-      console.error("Error submitting vote to blockchain:", error);
-      return false;
+      console.error(error);
+      setLoading(false);
+      setMessage('Error submitting vote: ' + error.message);
+      setMessageType('error');
     }
   };
-
-  const handleSubmitVote = async () => {
-    let voteData;
-    
-    switch(votingMethod) {
-      case 'approval':
-        voteData = Object.keys(approvalVotes)
-          .filter(id => approvalVotes[id])
-          .map(id => parseInt(id));
-        break;
-      case 'ranked':
-        voteData = rankedVotes.map((candidateId, index) => ({
-          candidateId: parseInt(candidateId),
-          rank: index + 1
-        }));
-        break;
-      case 'quadratic':
-        voteData = Object.entries(quadraticVotes).map(([candidateId, votes]) => ({
-          candidateId: parseInt(candidateId),
-          votes: votes
-        }));
-        break;
-      default:
-        voteData = {};
-    }
-    
-    try {
-      // First submit to blockchain
-      const blockchainSuccess = await submitVoteToBlockchain(voteData);
-      
-      if (!blockchainSuccess) {
-        throw new Error("Blockchain submission failed");
+  
+  // Handle choice selection
+  const handleChoiceSelection = (index) => {
+    if (topicDetails?.method === 0) {
+      // Single choice voting
+      setSelectedChoices([index.toString()]);
+    } else {
+      // For other methods
+      const currentIndex = selectedChoices.indexOf(index.toString());
+      if (currentIndex === -1) {
+        setSelectedChoices([...selectedChoices, index.toString()]);
+      } else {
+        setSelectedChoices(selectedChoices.filter(i => i !== index.toString()));
       }
-      
-      // Then navigate to confirmation
-      navigate(`/confirmation/${electionId}`);
-    } catch (error) {
-      console.error("Error casting vote:", error);
-      alert("Failed to cast vote. Please try again.");
     }
   };
   
-  const activateVoiceAssistant = () => {
-    setVoiceActive(true);
-    setVoiceMessage("Hi, I'm Vee! How can I help with your voting process today?");
-    
-    setTimeout(() => {
-      setVoiceActive(false);
-    }, 5000);
+  // Check if a choice is selected
+  const isChoiceSelected = (index) => {
+    return selectedChoices.includes(index.toString());
   };
   
-  const renderVotingInterface = () => {
-    switch(votingMethod) {
-      case 'approval':
-        return (
-          <div className="space-y-4">
-            <h2 className="text-xl text-white font-medium mb-4">Select all candidates you approve of:</h2>
-            {candidates.map(candidate => (
-              <motion.div 
-                key={candidate.id}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => handleApprovalVote(candidate.id)}
-                className={`p-4 rounded-lg cursor-pointer transition-colors ${
-                  approvalVotes[candidate.id] ? 'bg-green-600' : 'bg-white/20'
-                }`}
-              >
-                <div className="flex items-center">
-                  <div className="h-12 w-12 rounded-full bg-blue-500 flex items-center justify-center mr-4">
-                    {candidate.name.charAt(0)}
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-medium text-white">{candidate.name}</h3>
-                    <p className="text-blue-200 text-sm">{candidate.description}</p>
-                  </div>
-                  <div className="ml-auto">
-                    {approvalVotes[candidate.id] ? (
-                      <div className="h-6 w-6 rounded-full bg-white flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                    ) : (
-                      <div className="h-6 w-6 rounded-full border-2 border-white/50"></div>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        );
-        
-      case 'ranked':
-        return (
-          <div className="space-y-4">
-            <h2 className="text-xl text-white font-medium mb-4">Rank candidates by preference (drag to reorder):</h2>
-            <div className="bg-white/10 rounded-lg p-4">
-              <table className="w-full">
-                <thead>
-                  <tr className="text-left">
-                    <th className="px-4 py-2 text-blue-200">Rank</th>
-                    <th className="px-4 py-2 text-blue-200">Candidate</th>
-                    <th className="px-4 py-2 text-blue-200">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {candidates.map((candidate, index) => {
-                    const rank = rankedVotes.indexOf(candidate.id);
-                    return (
-                      <tr key={candidate.id} className={`${rank >= 0 ? 'bg-blue-900/30' : ''}`}>
-                        <td className="px-4 py-3 text-white">
-                          {rank >= 0 ? rank + 1 : '-'}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center">
-                            <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center mr-3">
-                              {candidate.name.charAt(0)}
-                            </div>
-                            <div>
-                              <h3 className="font-medium text-white">{candidate.name}</h3>
-                              <p className="text-blue-200 text-xs">{candidate.description}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex space-x-1">
-                            {[...Array(candidates.length)].map((_, i) => (
-                              <button
-                                key={i}
-                                onClick={() => handleRankedVote(candidate.id, i)}
-                                className={`h-8 w-8 rounded-full ${rank === i ? 'bg-green-500' : 'bg-white/20'} flex items-center justify-center text-xs font-medium`}
-                              >
-                                {i + 1}
-                              </button>
-                            ))}
-                            {rank >= 0 && (
-                              <button
-                                onClick={() => handleRankedVote(candidate.id, -1)}
-                                className="h-8 w-8 rounded-full bg-red-500/70 flex items-center justify-center"
-                              >
-                                ×
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        );
-        
-      case 'quadratic':
-        return (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl text-white font-medium">Allocate your voting power:</h2>
-              <div className="bg-blue-800 text-white px-4 py-2 rounded-lg">
-                <span className="font-bold">{remainingCredits}</span> credits remaining
-              </div>
-            </div>
-            
-            <div className="bg-white/10 backdrop-blur p-4 rounded-lg mb-4">
-              <p className="text-blue-200 text-sm">
-                In quadratic voting, the cost of votes increases quadratically. 
-                1 vote costs 1 credit, 2 votes cost 4 credits, 3 votes cost 9 credits, and so on.
-                This lets you express intensity of preference.
-              </p>
-            </div>
-            
-            {candidates.map(candidate => {
-              const voteCount = quadraticVotes[candidate.id] || 0;
-              const voteCost = voteCount * voteCount;
-              
-              return (
-                <motion.div 
-                  key={candidate.id}
-                  className="bg-white/20 rounded-lg overflow-hidden"
-                >
-                  <div className="p-4">
-                    <div className="flex items-center mb-3">
-                      <div className="h-12 w-12 rounded-full bg-blue-500 flex items-center justify-center mr-4">
-                        {candidate.name.charAt(0)}
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-medium text-white">{candidate.name}</h3>
-                        <p className="text-blue-200 text-sm">{candidate.description}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between mt-2">
-                      <button
-                        onClick={() => handleQuadraticVote(candidate.id, 'decrease')}
-                        disabled={voteCount === 0}
-                        className={`h-10 w-10 rounded-full ${voteCount === 0 ? 'bg-gray-600/50' : 'bg-red-500/70'} flex items-center justify-center text-white`}
-                      >
-                        −
-                      </button>
-                      
-                      <div className="flex flex-col items-center">
-                        <div className="text-3xl font-bold text-white">{voteCount}</div>
-                        <div className="text-xs text-blue-200">
-                          Cost: {voteCost} credits
-                        </div>
-                      </div>
-                      
-                      <button
-                        onClick={() => handleQuadraticVote(candidate.id, 'increase')}
-                        disabled={(voteCount + 1) * (voteCount + 1) - voteCost > remainingCredits}
-                        className={`h-10 w-10 rounded-full ${(voteCount + 1) * (voteCount + 1) - voteCost > remainingCredits ? 'bg-gray-600/50' : 'bg-green-500'} flex items-center justify-center text-white`}
-                      >
-                        +
-                      </button>
-                    </div>
-                    
-                    <div className="mt-3 bg-white/10 rounded-full h-2">
-                      <div 
-                        className="bg-blue-500 h-full rounded-full" 
-                        style={{ width: `${(voteCount / 4) * 100}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        );
-        
-      default:
-        return (
-          <div className="text-center p-8 text-white/70">
-            Voting method not supported.
-          </div>
-        );
-    }
+  // Display voting method name
+  const getVotingMethodName = (methodId) => {
+    const methods = ['Single Choice', 'Multiple Choice', 'Ranked Choice', 'Quadratic Voting'];
+    return methods[methodId] || 'Unknown Method';
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-900 to-purple-900">
-        <div className="text-white text-xl">Loading voting interface...</div>
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 to-purple-900">
-      <div className="container mx-auto px-4 py-8">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="bg-white/10 backdrop-blur-lg rounded-xl p-6 shadow-xl"
-        >
-          <div className="flex justify-between items-start mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-white">{currentElection?.title}</h1>
-              <p className="text-blue-200">{currentElection?.description}</p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6">
+      <div className="max-w-4xl mx-auto">
+        {/* Header Card */}
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-8 text-white">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">ZKVote</h1>
+                <p className="mt-1 text-blue-100">Private and Secure Blockchain Voting Platform</p>
+              </div>
+              <div className="mt-4 md:mt-0">
+                {connected ? (
+                  <div className="flex items-center bg-white bg-opacity-20 rounded-lg px-4 py-2">
+                    <div className="h-3 w-3 bg-green-400 rounded-full mr-2"></div>
+                    <span className="text-sm font-medium">
+                      {account.substring(0, 6)}...{account.substring(account.length - 4)}
+                    </span>
+                  </div>
+                ) : (
+                  <button 
+                    onClick={connectWallet} 
+                    className="px-5 py-2.5 bg-white text-indigo-700 rounded-lg shadow hover:bg-indigo-50 transition-all font-medium"
+                  >
+                    Connect Wallet
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {/* Notifications */}
+          {message && (
+            <div className={`px-6 py-3 text-sm border-l-4 ${
+              messageType === 'success' 
+                ? 'bg-green-50 text-green-700 border-green-500' 
+                : 'bg-red-50 text-red-700 border-red-500'
+              }`}
+            >
+              <div className="flex items-center">
+                <span className={`flex-shrink-0 h-5 w-5 mr-2 ${messageType === 'success' ? 'text-green-500' : 'text-red-500'}`}>
+                  {messageType === 'success' ? '✓' : '✕'}
+                </span>
+                {message}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Main Content */}
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+          <div className="p-6 sm:p-8">
+            {/* Topic ID Input */}
+            <div className="mb-8">
+              <label className="block text-gray-700 font-medium mb-2">Topic ID</label>
+              <div className="flex shadow-sm rounded-lg overflow-hidden">
+                <input
+                  type="number"
+                  value={topicId}
+                  onChange={(e) => setTopicId(e.target.value)}
+                  className="flex-1 px-4 py-3 border-y border-l border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter Topic ID"
+                />
+                <button
+                  onClick={fetchTopicDetails}
+                  disabled={!connected || !topicId || loading}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-r-lg hover:from-blue-700 hover:to-indigo-700 transition-all disabled:from-gray-400 disabled:to-gray-400 font-medium"
+                >
+                  {loading ? (
+                    <span className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Loading
+                    </span>
+                  ) : 'Load Topic'}
+                </button>
+              </div>
             </div>
             
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={activateVoiceAssistant}
-              className="bg-purple-600 hover:bg-purple-700 text-white rounded-full p-3"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-              </svg>
-            </motion.button>
-          </div>
-          
-          {showHelp && (
-            <motion.div 
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-blue-900/80 p-4 rounded-lg mb-6"
-            >
-              <div className="flex items-start">
-                <div className="bg-blue-600 rounded-full p-2 mr-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-white font-medium mb-1">Need help with {votingMethod} voting?</h3>
-                  <p className="text-blue-200 text-sm">
-                    {votingMethod === 'approval' && "Select all candidates you approve of. You can vote for multiple candidates."}
-                    {votingMethod === 'ranked' && "Rank candidates in order of preference. #1 is your most preferred choice."}
-                    {votingMethod === 'quadratic' && "Allocate votes based on how strongly you feel. Each additional vote costs more credits."}
-                  </p>
-                </div>
-                <button 
-                  onClick={() => setShowHelp(false)}
-                  className="text-white/70 hover:text-white"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                </button>
-              </div>
-            </motion.div>
-          )}
-          
-          {voiceActive && (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="fixed bottom-8 right-8 bg-purple-700 text-white p-4 rounded-lg shadow-lg max-w-sm"
-            >
-              <div className="flex items-start">
-                <div className="mr-3">
-                  <div className="h-10 w-10 rounded-full bg-purple-500 flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                    </svg>
+            {topicDetails && (
+              <div className="space-y-8">
+                {/* Topic Details */}
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
+                  <h2 className="text-2xl font-bold text-gray-800 mb-2">{topicDetails.name}</h2>
+                  <p className="text-gray-600 mb-6">{topicDetails.description}</p>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+                    <div className="bg-white rounded-lg p-4 shadow-sm">
+                      <p className="text-sm font-medium text-gray-500 mb-1">Voting Method</p>
+                      <p className="font-semibold text-gray-800">{getVotingMethodName(topicDetails.method)}</p>
+                    </div>
+                    <div className="bg-white rounded-lg p-4 shadow-sm">
+                      <p className="text-sm font-medium text-gray-500 mb-1">Status</p>
+                      <div className="flex items-center">
+                        <span className={`inline-block h-2.5 w-2.5 rounded-full mr-2 ${topicDetails.isVotingOpen ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                        <span className={`font-semibold ${topicDetails.isVotingOpen ? 'text-green-600' : 'text-red-600'}`}>
+                          {topicDetails.isVotingOpen ? 'Open' : 'Closed'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="bg-white rounded-lg p-4 shadow-sm">
+                      <p className="text-sm font-medium text-gray-500 mb-1">Start Time</p>
+                      <p className="font-semibold text-gray-800">{topicDetails.startTime}</p>
+                    </div>
+                    <div className="bg-white rounded-lg p-4 shadow-sm">
+                      <p className="text-sm font-medium text-gray-500 mb-1">End Time</p>
+                      <p className="font-semibold text-gray-800">{topicDetails.endTime}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Choices */}
+                  <div className="mb-8">
+                    <h3 className="font-semibold text-gray-800 mb-3 text-lg">Available Options</h3>
+                    <div className="space-y-3">
+                      {topicDetails.choices.map((choice, index) => (
+                        <div 
+                          key={index}
+                          onClick={() => handleChoiceSelection(index)}
+                          className={`p-4 rounded-lg cursor-pointer transition-all ${
+                            isChoiceSelected(index) 
+                              ? 'border-2 border-blue-500 bg-blue-50 shadow-md' 
+                              : 'border border-gray-200 hover:border-blue-300 bg-white'
+                          }`}
+                        >
+                          <div className="flex items-center">
+                            <div className={`w-6 h-6 rounded-full mr-3 flex items-center justify-center border-2 ${
+                              isChoiceSelected(index) 
+                                ? 'border-blue-500 bg-blue-500' 
+                                : 'border-gray-300'
+                            }`}>
+                              {isChoiceSelected(index) && (
+                                <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
+                                </svg>
+                              )}
+                            </div>
+                            <span className="text-gray-800 font-medium">{choice}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-white">{voiceMessage}</p>
+                
+                {/* Voting Form */}
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Your Vote Information</h3>
+                  
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-gray-700 font-medium mb-2">
+                        Nullifier (Secret Key) <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={nullifier}
+                        onChange={(e) => setNullifier(e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter your nullifier"
+                      />
+                      <p className="mt-1.5 text-sm text-gray-500 flex items-start">
+                        <svg className="w-4 h-4 text-blue-500 mr-1.5 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        This is your private key for this vote. Keep it secret!
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-gray-700 font-medium mb-2">
+                        Commitment <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={commitment}
+                        onChange={(e) => setCommitment(e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter your commitment"
+                      />
+                      <p className="mt-1.5 text-sm text-gray-500 flex items-start">
+                        <svg className="w-4 h-4 text-blue-500 mr-1.5 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        This is your registered voter commitment value.
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-gray-700 font-medium mb-2">
+                        Location Proof (if required)
+                      </label>
+                      <input
+                        type="text"
+                        value={locationProof}
+                        onChange={(e) => setLocationProof(e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Location proof (if needed)"
+                      />
+                    </div>
+                    
+                    <button
+                      onClick={submitVote}
+                      disabled={!connected || loading || !topicDetails.isVotingOpen || !nullifier || !commitment || selectedChoices.length === 0}
+                      className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all disabled:from-gray-400 disabled:to-gray-400 font-medium text-lg shadow-md"
+                    >
+                      {loading ? (
+                        <span className="flex items-center justify-center">
+                          <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Submitting Vote...
+                        </span>
+                      ) : 'Submit Vote'}
+                    </button>
+                  </div>
                 </div>
-                <button 
-                  onClick={() => setVoiceActive(false)}
-                  className="text-white/70 hover:text-white"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                </button>
               </div>
-            </motion.div>
-          )}
-          
-          {showBiasInfo && (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="bg-blue-900/90 p-5 rounded-lg mb-6"
-            >
-              <div className="flex items-start mb-3">
-                <div className="bg-yellow-500 rounded-full p-2 mr-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-900" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-medium text-white mb-1">Be aware of voting biases</h3>
-                  <p className="text-blue-200 text-sm">
-                    Common biases in voting include name-order effects, proximity bias, and emotional decision-making. 
-                    Take your time to consider each candidate's qualifications objectively.
-                  </p>
-                </div>
-                <button 
-                  onClick={() => setShowBiasInfo(false)}
-                  className="text-white/70 hover:text-white"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                </button>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                <div className="bg-blue-800/50 p-3 rounded">
-                  <h4 className="font-medium text-white">Name-Order Effect</h4>
-                  <p className="text-blue-200">Candidates listed first often receive more votes regardless of merit.</p>
-                </div>
-                <div className="bg-blue-800/50 p-3 rounded">
-                  <h4 className="font-medium text-white">Bandwagon Effect</h4>
-                  <p className="text-blue-200">Tendency to support candidates who appear popular or likely to win.</p>
-                </div>
-              </div>
-            </motion.div>
-          )}
-          
-          <div className="mt-6">
-            {renderVotingInterface()}
+            )}
           </div>
-          
-          <div className="mt-8 flex justify-between items-center">
-            <button
-              onClick={() => setShowBiasInfo(!showBiasInfo)}
-              className="text-blue-200 hover:text-white flex items-center"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-              Bias information
-            </button>
-            
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={handleSubmitVote}
-              className="bg-green-600 hover:bg-green-700 text-white py-3 px-8 rounded-lg font-medium flex items-center"
-            >
-              Submit Vote
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-              </svg>
-            </motion.button>
-          </div>
-        </motion.div>       
+        </div>
+        
+        {/* Footer */}
+        <div className="mt-8 text-center text-gray-500 text-sm">
+          ZKVote - Privacy-Preserving Blockchain Voting Platform
+        </div>
       </div>
     </div>
   );
 };
 
-export default VoteCasting;
+export default ZKVote;

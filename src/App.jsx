@@ -19,7 +19,7 @@ import AnalyticsDashboard from './pages/AnalyticsDashboard';
 import AdminDispute from './pages/AdminDispute';
 import NotFound from './pages/NotFound';
 import DisputeManagement from './pages/Dispute';
-
+import CreateTopic from './pages/CreateTopic';
 // Components
 import VoiceAssistant from './components/VoiceAssistant';
 import LoadingScreen from './components/LoadingScreen';
@@ -148,7 +148,7 @@ function App() {
                   } 
                 />
                 <Route 
-                  path="/vote/:electionId" 
+                  path="/vote" 
                   element={
                     <ProtectedRoute>
                       <VoteCasting />
@@ -171,6 +171,14 @@ function App() {
                     </ProtectedRoute>
                   } 
                 
+                />
+                <Route 
+                  path="/create-topic" 
+                  element={
+                    <ProtectedRoute>
+                      <CreateTopic />
+                    </ProtectedRoute>
+                  }
                 />
                 <Route 
                   path="/analytics" 

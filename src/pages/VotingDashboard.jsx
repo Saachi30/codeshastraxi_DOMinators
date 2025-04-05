@@ -136,7 +136,7 @@ const VotingDashboard = () => {
   };
 
   const handleElectionSelect = (election) => {
-    navigate(`/vote/${election.id}`);
+    navigate(`/vote`);
   };
 
   const getStatusColor = (status) => {
