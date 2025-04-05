@@ -25,6 +25,7 @@ import AdminPage  from './pages/AdminPage';
 // Components
 import VoiceAssistant from './components/VoiceAssistant';
 import LoadingScreen from './components/LoadingScreen';
+import HomePage from './pages/HOME.JSX';
 
 // Initialize Firebase
 const firebaseConfig = {
@@ -146,6 +147,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <VotingDashboard />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/home" 
+                  element={
+                    <ProtectedRoute>
+                      <HomePage />
                     </ProtectedRoute>
                   } 
                 />
