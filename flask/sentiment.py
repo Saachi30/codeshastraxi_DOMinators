@@ -27,6 +27,7 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 from flask import Flask, request, jsonify
+from flask_cors import CORS  # Import Flask-CORS
 
 # Download necessary NLTK data
 try:
@@ -44,6 +45,8 @@ class BlockchainVotingSentimentAnalyzer:
     It analyzes text feedback from voters to determine sentiment polarity.
     """
     
+    # The rest of the class remains unchanged...
+    # [Keeping the existing implementation]
     def __init__(self, load_pretrained=True, model_path='voting_sentiment_model.pkl'):
         """
         Initialize the sentiment analyzer, either by loading a pre-trained model
@@ -260,8 +263,6 @@ class BlockchainVotingSentimentAnalyzer:
             return 0
         
         # Calculate normalized score between -1 and 1
-        # Using the difference of sentiment words rather than normalizing by total tokens
-        # to give more weight to sentiment words
         return (positive_count - negative_count) / max(1, total_sentiment_words)
     
     def _train_model(self):
@@ -516,6 +517,7 @@ class BlockchainVotingSentimentAnalyzer:
 
 # Initialize Flask app
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 # Create sentiment analyzer instance
 analyzer = None
@@ -616,4 +618,4 @@ def main():
 if __name__ == "__main__":
     # Always run as API server
     print("Starting Blockchain Voting Sentiment Analyzer API server...")
-    app.run(host='0.0.0.0', port=5000, debug=True)  
+    app.run(host='0.0.0.0', port=5000, debug=True)

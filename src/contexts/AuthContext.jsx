@@ -9,9 +9,11 @@ import {
 } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 
+
 const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
+
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
@@ -24,7 +26,8 @@ export const AuthProvider = ({ children }) => {
   // Firebase auth instance
   const auth = getAuth();
   const db = getFirestore();
-  
+  // Create and export the context
+
   useEffect(() => {
     // Listen for auth state changes
     const unsubscribe = onAuthStateChanged(auth, async (user) => {

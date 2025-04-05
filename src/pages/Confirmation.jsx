@@ -1,22 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Confetti from 'react-confetti';
-import { FaCheckCircle, FaShareAlt, FaLinkedin, FaTwitter, FaDownload } from 'react-icons/fa';
+import { FaCheckCircle, FaShareAlt, FaLinkedin, FaTwitter, FaDownload, FaSmile, FaMeh, FaFrown } from 'react-icons/fa';
+// import { AuthContext } from '../contexts/AuthContext';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import { useAuth } from '../contexts/AuthContext'; 
 
 const VoteConfirmation = () => {
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const [showConfetti, setShowConfetti] = useState(true);
   const [nftGenerated, setNftGenerated] = useState(false);
-  const [voteData, setVoteData] = useState({
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [feedbackText, setFeedbackText] = useState('');
+  const [selectedSentiment, setSelectedSentiment] = useState(null);
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+  
+  const voteData = {
     timestamp: new Date().toLocaleString(),
     electionName: "Community Development Initiative",
+    electionId: "election-1",
     voterLevel: "Gold Participant",
     transactionHash: "0x8a39f5d7b79dfe9b3c2f26fd7d7e48871fc8f36f9e66d1e8",
     alignmentScore: 87,
-  });
+  };
 
-  // Mock function to simulate blockchain confirmation
   useEffect(() => {
     const timer = setTimeout(() => {
       setNftGenerated(true);
@@ -31,8 +40,54 @@ const VoteConfirmation = () => {
   };
 
   const downloadCertificate = () => {
-    // In a real app, this would generate a downloadable certificate
     alert("Certificate downloading...");
+  };
+
+  const submitFeedback = async () => {
+    if (!selectedSentiment || !feedbackText.trim()) {
+      alert("Please select a sentiment and provide feedback");
+      return;
+    }
+
+    setIsSubmittingFeedback(true);
+    
+    try {
+      // Send feedback to your Flask API
+      const response = await fetch('http://localhost:5000/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: feedbackText,
+          userId: currentUser?.uid,
+          electionId: voteData.electionId
+        }),
+      });
+
+      const result = await response.json();
+      
+      // Store in Firebase
+      if (currentUser) {
+        const db = getFirestore();
+        await setDoc(doc(db, "sentiments", `${currentUser.uid}_${Date.now()}`), {
+          text: feedbackText,
+          sentiment: result.sentiment,
+          confidence: result.confidence,
+          electionId: voteData.electionId,
+          userId: currentUser.uid,
+          timestamp: new Date().toISOString(),
+          modelAnalysis: result
+        });
+      }
+
+      setFeedbackSubmitted(true);
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+      alert("Failed to submit feedback. Please try again.");
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
   };
 
   return (
@@ -50,6 +105,7 @@ const VoteConfirmation = () => {
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Vote Successfully Cast!</h1>
           <p className="text-gray-600 mb-6">Your voice has been securely recorded on the blockchain</p>
           
+          {/* Vote details section */}
           <div className="border-t border-b border-gray-200 py-4 my-4">
             <div className="flex justify-between text-sm mb-2">
               <span className="font-semibold text-gray-600">Timestamp:</span>
@@ -69,6 +125,7 @@ const VoteConfirmation = () => {
             </div>
           </div>
           
+          {/* NFT Certificate section */}
           {nftGenerated ? (
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
@@ -103,6 +160,67 @@ const VoteConfirmation = () => {
               <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
               <p className="ml-4 text-lg text-gray-600">Generating your certificate...</p>
             </div>
+          )}
+          
+          {/* Feedback Section */}
+          {!feedbackSubmitted && nftGenerated && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mt-6 p-4 bg-gray-50 rounded-lg"
+            >
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Share your voting experience</h3>
+              
+              <div className="flex justify-center space-x-4 mb-4">
+                <button
+                  onClick={() => setSelectedSentiment('positive')}
+                  className={`p-3 rounded-full ${selectedSentiment === 'positive' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'}`}
+                >
+                  <FaSmile className="text-2xl" />
+                  <span className="text-xs mt-1 block">Positive</span>
+                </button>
+                <button
+                  onClick={() => setSelectedSentiment('neutral')}
+                  className={`p-3 rounded-full ${selectedSentiment === 'neutral' ? 'bg-yellow-100 text-yellow-600' : 'bg-gray-100 text-gray-500'}`}
+                >
+                  <FaMeh className="text-2xl" />
+                  <span className="text-xs mt-1 block">Neutral</span>
+                </button>
+                <button
+                  onClick={() => setSelectedSentiment('negative')}
+                  className={`p-3 rounded-full ${selectedSentiment === 'negative' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'}`}
+                >
+                  <FaFrown className="text-2xl" />
+                  <span className="text-xs mt-1 block">Negative</span>
+                </button>
+              </div>
+              
+              <textarea
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                placeholder="Tell us about your voting experience..."
+                className="w-full p-3 border border-gray-300 rounded-lg mb-3"
+                rows="3"
+              />
+              
+              <button
+                onClick={submitFeedback}
+                disabled={isSubmittingFeedback}
+                className="w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-indigo-300"
+              >
+                {isSubmittingFeedback ? 'Submitting...' : 'Submit Feedback'}
+              </button>
+            </motion.div>
+          )}
+          
+          {feedbackSubmitted && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mt-4 p-3 bg-green-50 text-green-700 rounded-lg"
+            >
+              Thank you for your feedback! Your response helps improve the voting experience.
+            </motion.div>
           )}
         </div>
         
