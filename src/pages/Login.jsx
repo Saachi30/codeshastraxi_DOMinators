@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import { useEffect } from 'react';
+
 const Login = ({ toggleAuth }) => {
   const navigate = useNavigate();
   const [authMethod, setAuthMethod] = useState('face');
@@ -267,22 +268,22 @@ const Login = ({ toggleAuth }) => {
         <div className="w-full max-w-md mb-6">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Email Address</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Enter your email"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Password</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Enter your password"
               />
             </div>
@@ -316,7 +317,7 @@ const Login = ({ toggleAuth }) => {
               {loading && (
                 <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
                   <div className="w-full max-w-xs">
-                    <div className="bg-gray-800 rounded-full h-2 mb-2">
+                    <div className="bg-gray-200 rounded-full h-2 mb-2">
                       <div 
                         className="bg-blue-500 h-2 rounded-full transition-all duration-300"
                         style={{ width: `${progress}%` }}
@@ -329,9 +330,9 @@ const Login = ({ toggleAuth }) => {
             </div>
             
             <div className="mt-6 text-center">
-              <p className="mb-4 text-blue-200">{message || "Center your face in the frame and click Verify."}</p>
+              <p className="mb-4 text-blue-600">{message || "Center your face in the frame and click Verify."}</p>
               <button
-                className="px-6 py-3 bg-blue-600 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-700 disabled:text-gray-400"
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:text-gray-200"
                 onClick={scanFace}
                 disabled={loading || !cameraActive}
               >
@@ -342,12 +343,12 @@ const Login = ({ toggleAuth }) => {
             {/* Help modal */}
             {showHelp && (
               <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-              <div className="bg-gray-900 rounded-xl p-6 max-w-md w-full border border-blue-500/30">
-                  <h3 className="text-xl font-bold mb-3 text-blue-300">Need Help?</h3>
-                  <p className="text-gray-200 mb-4">
+                <div className="bg-white rounded-xl p-6 max-w-md w-full border border-blue-200">
+                  <h3 className="text-xl font-bold mb-3 text-blue-600">Need Help?</h3>
+                  <p className="text-gray-700 mb-4">
                     It looks like you might need some assistance with the face verification process.
                   </p>
-                  <ul className="list-disc list-inside space-y-2 text-gray-200 mb-4">
+                  <ul className="list-disc list-inside space-y-2 text-gray-700 mb-4">
                     <li>Make sure your face is well-lit</li>
                     <li>Center your face in the frame</li>
                     <li>Remove glasses or face coverings</li>
@@ -356,7 +357,7 @@ const Login = ({ toggleAuth }) => {
                   </ul>
                   <div className="flex justify-end">
                     <button 
-                      className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                       onClick={() => setShowHelp(false)}
                     >
                       Got it
@@ -371,9 +372,9 @@ const Login = ({ toggleAuth }) => {
         {authMethod === 'sms' && (
           <div className="w-full max-w-md">
             <div className="text-center mb-6">
-              <h3 className="text-xl font-medium text-blue-300 mb-2">SMS Verification</h3>
-              <p className="text-gray-300">Enter the 6-digit code sent to your registered phone</p>
-              {message && <p className="mt-2 text-sm text-blue-400">{message}</p>}
+              <h3 className="text-xl font-medium text-blue-600 mb-2">SMS Verification</h3>
+              <p className="text-gray-700">Enter the 6-digit code sent to your registered phone</p>
+              {message && <p className="mt-2 text-sm text-blue-600">{message}</p>}
             </div>
             
             <div className="flex justify-center gap-2 mb-6">
@@ -386,14 +387,14 @@ const Login = ({ toggleAuth }) => {
                   value={digit}
                   onChange={(e) => handleOtpChange(index, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(index, e)}
-                  className="w-12 h-16 text-center text-2xl font-bold bg-gray-800 border-2 border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+                  className="w-12 h-16 text-center text-2xl font-bold bg-gray-50 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
                 />
               ))}
             </div>
             
             <div className="flex flex-col gap-3">
               <button 
-                className="w-full py-3 bg-blue-600 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-700 disabled:text-gray-400"
+                className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:text-gray-200"
                 onClick={verifySMSCode}
                 disabled={loading}
               >
@@ -401,7 +402,7 @@ const Login = ({ toggleAuth }) => {
               </button>
               
               <button 
-                className="w-full py-2 bg-transparent border border-gray-600 rounded-lg font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
+                className="w-full py-2 bg-transparent border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-100 transition-colors disabled:opacity-50"
                 disabled={loading}
               >
                 Resend Code
@@ -409,7 +410,7 @@ const Login = ({ toggleAuth }) => {
             </div>
 
             <div className="mt-4 text-center">
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-gray-600">
                 Demo hint: Use code "123456"
               </p>
             </div>
@@ -419,19 +420,19 @@ const Login = ({ toggleAuth }) => {
         {authMethod === 'hardware' && (
           <div className="w-full max-w-md text-center">
             <div className="mb-6">
-              <h3 className="text-xl font-medium text-blue-300 mb-2">Hardware Token</h3>
-              <p className="text-gray-300">Connect your hardware security key to continue</p>
-              {message && <p className="mt-2 text-sm text-blue-400">{message}</p>}
+              <h3 className="text-xl font-medium text-blue-600 mb-2">Hardware Token</h3>
+              <p className="text-gray-700">Connect your hardware security key to continue</p>
+              {message && <p className="mt-2 text-sm text-blue-600">{message}</p>}
             </div>
             
             <div className="flex justify-center mb-8">
-              <div className="w-32 h-32 bg-blue-900/40 border-2 border-blue-500/50 rounded-xl flex items-center justify-center">
+              <div className="w-32 h-32 bg-blue-100 border-2 border-blue-200 rounded-xl flex items-center justify-center">
                 <div className={`text-5xl ${loading ? 'animate-pulse' : ''}`}>🔑</div>
               </div>
             </div>
             
             <button 
-              className="w-full py-3 bg-blue-600 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-700 disabled:text-gray-400"
+              className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:text-gray-200"
               onClick={verifyHardware}
               disabled={loading}
             >
@@ -445,29 +446,29 @@ const Login = ({ toggleAuth }) => {
   
   return (
     <motion.div 
-      className="w-full max-w-3xl bg-gray-900/90 backdrop-blur-lg rounded-xl p-6 md:p-8 shadow-2xl border border-blue-900/50"
+      className="w-full max-w-3xl bg-white/90 backdrop-blur-lg rounded-xl p-6 md:p-8 shadow-2xl border border-blue-200"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
     >
-      <h2 className="text-2xl md:text-3xl font-bold text-center mb-2 text-blue-300">Secure Login</h2>
-      <p className="text-center text-gray-400 mb-6">Verify your identity to continue</p>
+      <h2 className="text-2xl md:text-3xl font-bold text-center mb-2 text-blue-600">Secure Login</h2>
+      <p className="text-center text-gray-600 mb-6">Verify your identity to continue</p>
       
       <div className="flex justify-center mb-6">
-        <div className="inline-flex bg-gray-800 rounded-lg p-1">
+        <div className="inline-flex bg-gray-100 rounded-lg p-1">
           <button 
-            className={`px-4 py-2 rounded-md transition-colors ${authMethod === 'face' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`}
+            className={`px-4 py-2 rounded-md transition-colors ${authMethod === 'face' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-200'}`}
             onClick={() => setAuthMethod('face')}
           >
             Face
           </button>
           <button 
-            className={`px-4 py-2 rounded-md transition-colors ${authMethod === 'sms' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`}
+            className={`px-4 py-2 rounded-md transition-colors ${authMethod === 'sms' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-200'}`}
             onClick={() => setAuthMethod('sms')}
           >
             SMS
           </button>
           <button 
-            className={`px-4 py-2 rounded-md transition-colors ${authMethod === 'hardware' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`}
+            className={`px-4 py-2 rounded-md transition-colors ${authMethod === 'hardware' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-200'}`}
             onClick={() => setAuthMethod('hardware')}
           >
             Hardware
@@ -475,15 +476,27 @@ const Login = ({ toggleAuth }) => {
         </div>
       </div>
       
+      {loading && (
+        <div className="mb-6">
+          <div className="bg-gray-200 rounded-full h-2 mb-2">
+            <div 
+              className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <p className="text-sm text-center text-blue-500">{message}</p>
+        </div>
+      )}
+      
       {renderAuthMethod()}
       
       <div className="mt-4 text-center">
-        <p className="text-gray-400">
+        <p className="text-gray-600">
           Don't have an account?{" "}
           <button
             type="button"
             onClick={toggleAuth}
-            className="text-blue-400 hover:underline"
+            className="text-blue-600 hover:underline"
             disabled={loading}
           >
             Sign up
