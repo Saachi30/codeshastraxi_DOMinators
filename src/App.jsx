@@ -31,6 +31,8 @@ import VoiceAssistantPage from './pages/VoiceAssistantPage';
 import VoiceAssistant from './components/VoiceAssistant';
 import LoadingScreen from './components/LoadingScreen';
 import HomePage from './pages/HOME.JSX';
+import Tracking from './pages/Tracking';
+import FloatingAssistantButton from './components/FloatingAssistantButton';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -129,6 +131,7 @@ function App() {
           <Router>
             <div className="min-h-screen bg-gradient-to-br from-blue-900 to-purple-900 text-white font-sans">
               <VoiceAssistant />
+              <FloatingAssistantButton/>
               <Routes>
                 <Route path="/" element={<Welcome />} />
                 <Route path="/auth" element={<Authentication />} />
@@ -220,6 +223,7 @@ function App() {
                 <Route path="/analytics" element={<AnalyticsDashboard />} />
                 <Route path="/admin" element={<AdminDispute />} />
                 <Route path="/voiceassitantpage" element={<VoiceAssistantPage />} />
+                <Route path='tracking' element={<Tracking/>}/>
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </div>

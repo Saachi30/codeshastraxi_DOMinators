@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import ZKEmailModal from './zkproof';
+import { Link } from 'react-router-dom';
+
 // Define the contract ABI and address
 const contractAddress = '0x12b4166e7C81dF1b47722746bD511Fca44dcb7EC';
 const contractABI = [
@@ -568,7 +570,7 @@ const ZKVote = () => {
             )}
           </div>
         </div>
-        
+        <Link to="/tracking"><button className='m-12 bg-amber-700'>Track</button></Link>
         {/* Footer */}
         <div className="mt-8 text-center text-gray-500 text-sm">
           ZKVote - Privacy-Preserving Blockchain Voting Platform
