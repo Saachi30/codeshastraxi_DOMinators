@@ -11,7 +11,7 @@ const Authentication = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-200 to-indigo-200 flex flex-col items-center justify-center p-4">
       {/* Background elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-1/4 w-32 h-32 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob"></div>
