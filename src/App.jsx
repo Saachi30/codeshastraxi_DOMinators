@@ -20,6 +20,8 @@ import AdminDispute from './pages/AdminDispute';
 import NotFound from './pages/NotFound';
 import DisputeManagement from './pages/Dispute';
 import CreateTopic from './pages/CreateTopic';
+import NFTManager from './pages/NFT';
+import AdminPage  from './pages/AdminPage';
 // Components
 import VoiceAssistant from './components/VoiceAssistant';
 import LoadingScreen from './components/LoadingScreen';
@@ -172,12 +174,28 @@ function App() {
                   } 
                 
                 />
+                <Route
+                  path="/nft" 
+                  element={
+                    <ProtectedRoute>
+                      <NFTManager />
+                    </ProtectedRoute>
+                  }
+                  />
                 <Route 
                   path="/create-topic" 
                   element={
                     <ProtectedRoute>
                       <CreateTopic />
                     </ProtectedRoute>
+                  }
+                />
+                <Route 
+                  path="/admin-page" 
+                  element={
+                    <AdminRoute>
+                      <AdminPage />
+                    </AdminRoute>
                   }
                 />
                 <Route 

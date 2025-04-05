@@ -179,7 +179,7 @@ const VotingDashboard = () => {
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold text-white">ZKVote Dashboard</h1>
             <button
-              onClick={() => navigate('/createtopic')}
+              onClick={() => navigate('/create-topic')}
               className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
             >
               Create Topic
