@@ -1,5 +1,13 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { 
+  getAuth, 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  onAuthStateChanged
+} from 'firebase/auth';
+import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 
 const AuthContext = createContext();
 
@@ -11,19 +19,33 @@ export const AuthProvider = ({ children }) => {
   const [authError, setAuthError] = useState(null);
   const [authMethod, setAuthMethod] = useState(null);
   const [geoLocation, setGeoLocation] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
   
-  // Mock voter database - in a real app this would be a backend service
-  const voterDatabase = [
-    { id: 1, name: 'John Doe', face_id: 'face123', phone: '+1234567890', eligible_regions: ['NY', 'CA'] },
-    { id: 2, name: 'Jane Smith', face_id: 'face456', phone: '+0987654321', eligible_regions: ['TX', 'FL'] },
-  ];
+  // Firebase auth instance
+  const auth = getAuth();
+  const db = getFirestore();
   
   useEffect(() => {
-    // Check for stored session
-    const storedUser = localStorage.getItem('currentUser');
-    if (storedUser) {
-      setCurrentUser(JSON.parse(storedUser));
-    }
+    // Listen for auth state changes
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setCurrentUser(user);
+      
+      if (user) {
+        // Fetch user profile data
+        try {
+          const userDoc = await getDoc(doc(db, "users", user.uid));
+          if (userDoc.exists()) {
+            setUserProfile(userDoc.data());
+          }
+        } catch (error) {
+          console.error("Error fetching user profile:", error);
+        }
+      } else {
+        setUserProfile(null);
+      }
+      
+      setLoading(false);
+    });
     
     // Get geolocation if available
     if (navigator.geolocation) {
@@ -40,138 +62,186 @@ export const AuthProvider = ({ children }) => {
       );
     }
     
-    setLoading(false);
-  }, []);
+    return () => unsubscribe();
+  }, [auth, db]);
   
-  // Verify biometric authentication (face recognition)
-  const verifyBiometric = async (faceData) => {
+  // Register new user
+  const register = async (userData, aadharImageUrl) => {
     try {
       setLoading(true);
-      // This would call your face recognition API
-      // For demo purposes, we'll just simulate a successful match
+      setAuthError(null);
       
-      const matchedUser = voterDatabase.find(user => user.face_id === 'face123');
+      // Create the user account
+      const userCredential = await createUserWithEmailAndPassword(
+        auth, 
+        userData.email, 
+        userData.password
+      );
       
-      if (matchedUser) {
-        // Check geo-fence if applicable
-        if (!isWithinGeoFence(matchedUser)) {
-          setAuthError("You are not eligible to vote in this region");
-          setLoading(false);
-          return false;
-        }
-        
-        setCurrentUser(matchedUser);
-        localStorage.setItem('currentUser', JSON.stringify(matchedUser));
-        setAuthMethod('biometric');
-        setLoading(false);
-        return true;
-      } else {
-        setAuthError("Face not recognized");
-        setLoading(false);
+      const user = userCredential.user;
+      
+      // Save additional user data to Firestore
+      await setDoc(doc(db, "users", user.uid), {
+        name: userData.name,
+        email: userData.email,
+        phone: userData.phone,
+        age: userData.age,
+        gender: userData.gender,
+        location: userData.location,
+        aadharCardUrl: aadharImageUrl,
+        createdAt: new Date().toISOString()
+      });
+      
+      setAuthMethod('registration');
+      return true;
+    } catch (error) {
+      console.error("Registration error:", error);
+      setAuthError(error.message);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Sign in with email/password
+  const signIn = async (email, password) => {
+    try {
+      setLoading(true);
+      setAuthError(null);
+      
+      await signInWithEmailAndPassword(auth, email, password);
+      setAuthMethod('email');
+      return true;
+    } catch (error) {
+      console.error("Sign in error:", error);
+      setAuthError(error.message);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Verify biometric authentication with basic email/password first
+  const verifyBiometric = async (email, password, capturedImage) => {
+    try {
+      setLoading(true);
+      setAuthError(null);
+      
+      // First authenticate with email/password
+      await signInWithEmailAndPassword(auth, email, password);
+      
+      // In a real app, this would send the face data to your backend for verification
+      // For demo purposes, we'll simulate successful verification
+      setAuthMethod('biometric');
+      
+      // Check geo-fence if applicable
+      if (!isWithinGeoFence()) {
+        setAuthError("You are not eligible to vote in this region");
         return false;
       }
+      
+      return true;
     } catch (error) {
-      setAuthError("Authentication failed");
-      setLoading(false);
+      console.error("Biometric verification error:", error);
+      setAuthError(error.message);
       return false;
+    } finally {
+      setLoading(false);
     }
   };
   
   // Verify SMS authentication
-  const verifySMS = async (phone, code) => {
+  const verifySMS = async (email, password, code) => {
     try {
       setLoading(true);
-      // This would call your SMS verification API
-      // For demo purposes, we'll just simulate a successful match if code is "123456"
+      setAuthError(null);
       
+      // First authenticate with email/password
+      await signInWithEmailAndPassword(auth, email, password);
+      
+      // For demo purposes, we'll use "123456" as the valid code
       if (code === "123456") {
-        const matchedUser = voterDatabase.find(user => user.phone === phone);
+        setAuthMethod('sms');
         
-        if (matchedUser) {
-          // Check geo-fence if applicable
-          if (!isWithinGeoFence(matchedUser)) {
-            setAuthError("You are not eligible to vote in this region");
-            setLoading(false);
-            return false;
-          }
-          
-          setCurrentUser(matchedUser);
-          localStorage.setItem('currentUser', JSON.stringify(matchedUser));
-          setAuthMethod('sms');
-          setLoading(false);
-          return true;
-        } else {
-          setAuthError("Phone number not registered");
-          setLoading(false);
+        // Check geo-fence if applicable
+        if (!isWithinGeoFence()) {
+          setAuthError("You are not eligible to vote in this region");
           return false;
         }
+        
+        return true;
       } else {
         setAuthError("Invalid verification code");
-        setLoading(false);
         return false;
       }
     } catch (error) {
-      setAuthError("Authentication failed");
-      setLoading(false);
+      console.error("SMS verification error:", error);
+      setAuthError(error.message);
       return false;
+    } finally {
+      setLoading(false);
     }
   };
   
   // Verify hardware token
-  const verifyHardwareToken = async (tokenCode) => {
+  const verifyHardwareToken = async (email, password, tokenCode) => {
     try {
       setLoading(true);
-      // This would call your hardware token verification API
-      // For demo purposes, we'll just simulate a successful match if tokenCode starts with "HW-"
+      setAuthError(null);
       
+      // First authenticate with email/password
+      await signInWithEmailAndPassword(auth, email, password);
+      
+      // For demo purposes, we'll check if tokenCode starts with "HW-"
       if (tokenCode.startsWith("HW-")) {
-        // Find a mock user for demo
-        const matchedUser = voterDatabase[0]; 
+        setAuthMethod('hardware');
         
         // Check geo-fence if applicable
-        if (!isWithinGeoFence(matchedUser)) {
+        if (!isWithinGeoFence()) {
           setAuthError("You are not eligible to vote in this region");
-          setLoading(false);
           return false;
         }
         
-        setCurrentUser(matchedUser);
-        localStorage.setItem('currentUser', JSON.stringify(matchedUser));
-        setAuthMethod('hardware');
-        setLoading(false);
         return true;
       } else {
         setAuthError("Invalid hardware token");
-        setLoading(false);
         return false;
       }
     } catch (error) {
-      setAuthError("Authentication failed");
-      setLoading(false);
+      console.error("Hardware token verification error:", error);
+      setAuthError(error.message);
       return false;
+    } finally {
+      setLoading(false);
     }
   };
   
   // Check if user is within allowed geo-fence
-  const isWithinGeoFence = (user) => {
+  const isWithinGeoFence = () => {
     // This would implement actual geo-fencing logic
     // For demo purposes, we'll just return true
     return true;
   };
   
   // Sign out
-  const signOut = () => {
-    setCurrentUser(null);
-    setAuthMethod(null);
-    localStorage.removeItem('currentUser');
+  const signOut = async () => {
+    try {
+      await firebaseSignOut(auth);
+      setAuthMethod(null);
+    } catch (error) {
+      console.error("Sign out error:", error);
+    }
   };
   
   const value = {
     currentUser,
+    userProfile,
     loading,
     authError,
     authMethod,
     geoLocation,
+    register,
+    signIn,
     verifyBiometric,
     verifySMS,
     verifyHardwareToken,
