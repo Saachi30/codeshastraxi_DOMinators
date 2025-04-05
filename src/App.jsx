@@ -18,6 +18,7 @@ import Confirmation from './pages/Confirmation';
 import AnalyticsDashboard from './pages/AnalyticsDashboard';
 import AdminDispute from './pages/AdminDispute';
 import NotFound from './pages/NotFound';
+import DisputeManagement from './pages/Dispute';
 
 // Components
 import VoiceAssistant from './components/VoiceAssistant';
@@ -161,6 +162,15 @@ function App() {
                       <Confirmation />
                     </ProtectedRoute>
                   } 
+                />
+                   <Route 
+                  path="/dispute"
+                  element={
+                    <ProtectedRoute>
+                      <DisputeManagement />
+                    </ProtectedRoute>
+                  } 
+                
                 />
                 <Route 
                   path="/analytics" 

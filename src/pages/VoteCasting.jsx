@@ -1,15 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { ethers } from 'ethers';
 import { useVoting } from '../contexts/VotingContext';
 import { useAuth } from '../contexts/AuthContext';
-import Header from '../components/Header';
+
+// Smart contract ABI (simplified for the vote function)
+const contractABI = [
+  {
+    "inputs": [
+      {"internalType": "uint256", "name": "topicId", "type": "uint256"},
+      {"internalType": "bytes32", "name": "nullifier", "type": "bytes32"},
+      {"internalType": "bytes32", "name": "voterCommitment", "type": "bytes32"},
+      {"internalType": "string", "name": "locationProof", "type": "string"},
+      {"internalType": "uint256[]", "name": "voteData", "type": "uint256[]"}
+    ],
+    "name": "vote",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "topicCount",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  }
+];
 
 const VoteCasting = () => {
   const { electionId } = useParams();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const { currentElection, fetchElection, castVote } = useVoting();
+  const { currentElection, fetchElection } = useVoting();
   
   const [loading, setLoading] = useState(true);
   const [votingMethod, setVotingMethod] = useState(null);
@@ -26,7 +50,47 @@ const VoteCasting = () => {
   
   const [voiceActive, setVoiceActive] = useState(false);
   const [voiceMessage, setVoiceMessage] = useState('');
-  
+  const [contract, setContract] = useState(null);
+  const [currentTopicId, setCurrentTopicId] = useState(null);
+  const [voterCommitment, setVoterCommitment] = useState(ethers.utils.formatBytes32String("default-commitment"));
+  const [nullifier, setNullifier] = useState(ethers.utils.formatBytes32String("default-nullifier"));
+
+  // Initialize ethers provider and contract
+  useEffect(() => {
+    const initEthers = async () => {
+      if (window.ethereum) {
+        try {
+          // Request account access if needed
+          await window.ethereum.request({ method: 'eth_requestAccounts' });
+          
+          // Create provider
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          
+          // Get signer
+          const signer = provider.getSigner();
+          
+          // Contract address - replace with your actual contract address
+          const contractAddress = '0x12b4166e7C81dF1b47722746bD511Fca44dcb7EC';
+          
+          // Create contract instance
+          const votingContract = new ethers.Contract(contractAddress, contractABI, signer);
+          setContract(votingContract);
+          
+          // Get current topic count (assuming the electionId matches the topicId)
+          const topicId = await votingContract.topicCount();
+          setCurrentTopicId(topicId.toNumber());
+          
+        } catch (error) {
+          console.error("Error initializing ethers:", error);
+        }
+      } else {
+        console.error("Ethereum provider not found. Install MetaMask.");
+      }
+    };
+    
+    initEthers();
+  }, []);
+
   useEffect(() => {
     const loadElectionData = async () => {
       if (!currentElection || currentElection.id !== electionId) {
@@ -105,28 +169,74 @@ const VoteCasting = () => {
     }));
   };
   
+  const submitVoteToBlockchain = async (voteData) => {
+    if (!contract || currentTopicId === null) {
+      console.error("Contract not initialized or topic ID not available");
+      return false;
+    }
+
+    try {
+      // Convert vote data to the correct format
+      const formattedVoteData = Array.isArray(voteData) ? 
+        voteData : 
+        Object.entries(voteData).map(([_, value]) => value);
+
+      // Location proof can be empty or contain relevant data
+      const locationProof = "on-chain-vote-proof";
+
+      // Call the vote function on the smart contract
+      const tx = await contract.vote(
+        currentTopicId,
+        nullifier,
+        voterCommitment,
+        locationProof,
+        formattedVoteData
+      );
+
+      // Wait for transaction to be mined
+      await tx.wait();
+      
+      return true;
+    } catch (error) {
+      console.error("Error submitting vote to blockchain:", error);
+      return false;
+    }
+  };
+
   const handleSubmitVote = async () => {
     let voteData;
     
     switch(votingMethod) {
       case 'approval':
-        voteData = Object.keys(approvalVotes).filter(id => approvalVotes[id]).map(id => parseInt(id));
+        voteData = Object.keys(approvalVotes)
+          .filter(id => approvalVotes[id])
+          .map(id => parseInt(id));
         break;
       case 'ranked':
-        voteData = rankedVotes.reduce((acc, candidateId, index) => {
-          acc[candidateId] = index + 1;
-          return acc;
-        }, {});
+        voteData = rankedVotes.map((candidateId, index) => ({
+          candidateId: parseInt(candidateId),
+          rank: index + 1
+        }));
         break;
       case 'quadratic':
-        voteData = quadraticVotes;
+        voteData = Object.entries(quadraticVotes).map(([candidateId, votes]) => ({
+          candidateId: parseInt(candidateId),
+          votes: votes
+        }));
         break;
       default:
         voteData = {};
     }
     
     try {
-      await castVote(electionId, voteData);
+      // First submit to blockchain
+      const blockchainSuccess = await submitVoteToBlockchain(voteData);
+      
+      if (!blockchainSuccess) {
+        throw new Error("Blockchain submission failed");
+      }
+      
+      // Then navigate to confirmation
       navigate(`/confirmation/${electionId}`);
     } catch (error) {
       console.error("Error casting vote:", error);
@@ -341,8 +451,6 @@ const VoteCasting = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 to-purple-900">
-      {/* <Header /> */}
-      
       <div className="container mx-auto px-4 py-8">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
