@@ -24,9 +24,9 @@ const CreateTopic = () => {
   
   const votingMethods = [
     { value: 0, label: 'Single Choice' },
-    { value: 1, label: 'Multiple Choice' },
-    { value: 2, label: 'Ranked Choice' },
-    { value: 3, label: 'Weighted Choice' }
+    { value: 1, label: 'Ranked Choice' },
+    { value: 2, label: 'Quadratic Choice' },
+    { value: 3, label: 'Multi Choice' }
   ];
   
   const handleInputChange = (e) => {
