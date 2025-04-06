@@ -22,7 +22,7 @@ import NotFound from './pages/NotFound';
 import DisputeManagement from './pages/Dispute';
 import CreateTopic from './pages/CreateTopic';
 import NFTManager from './pages/NFT';
-import AdminPage  from './pages/AdminPage';
+import AdminPage from './pages/AdminPage';
 // Components
 import VoiceAssistantPage from './pages/VoiceAssistantPage';
 
@@ -41,24 +41,24 @@ import Footer from './components/Footer';
 const ProtectedRoute = ({ children }) => {
   const [authChecked, setAuthChecked] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
-  
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setAuthenticated(!!user);
       setAuthChecked(true);
     });
-    
+
     return () => unsubscribe();
   }, []);
-  
+
   if (!authChecked) {
     return <LoadingScreen />;
   }
-  
+
   if (!authenticated) {
     return <Navigate to="/auth" />;
   }
-  
+
   return children;
 };
 
@@ -66,7 +66,7 @@ const ProtectedRoute = ({ children }) => {
 const AdminRoute = ({ children }) => {
   const [authChecked, setAuthChecked] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -77,24 +77,24 @@ const AdminRoute = ({ children }) => {
       }
       setAuthChecked(true);
     });
-    
+
     return () => unsubscribe();
   }, []);
-  
+
   if (!authChecked) {
     return <LoadingScreen />;
   }
-  
+
   if (!isAdmin) {
     return <Navigate to="/dashboard" />;
   }
-  
+
   return children;
 };
 
 function App() {
   const [loading, setLoading] = useState(true);
-  
+
   useEffect(() => {
     // Load face-api.js models if needed
     const loadFaceApiModels = async () => {
@@ -106,7 +106,7 @@ function App() {
         console.error("Error loading Face-API models:", error);
       }
     };
-    
+
     // Set up any Firebase listeners or initial data loading
     const setupFirebase = async () => {
       try {
@@ -118,15 +118,15 @@ function App() {
         setLoading(false);
       }
     };
-    
+
     loadFaceApiModels();
     setupFirebase();
   }, []);
-  
+
   if (loading) {
     return <LoadingScreen />;
   }
-  
+
   return (
     <Web3Provider>
       <AuthProvider>
@@ -134,93 +134,93 @@ function App() {
           <Router>
             <div className="min-h-screen bg-[#E4EFE7] text-black font-sans">
               <VoiceAssistant />
-              <FloatingAssistantButton/>
+              <FloatingAssistantButton />
               <GTranslate />
-              <Header/>
+              <Header />
               <Routes>
                 <Route path="/" element={<Welcome />} />
                 <Route path="/auth" element={<Authentication />} />
-                
-                <Route 
-                  path="/dashboard" 
+
+                <Route
+                  path="/dashboard"
                   element={
                     <ProtectedRoute>
                       <VotingDashboard />
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/home" 
+                <Route
+                  path="/home"
                   element={
                     <ProtectedRoute>
                       <HomePage />
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/vote" 
+                <Route
+                  path="/vote/:electionId"
                   element={
                     <ProtectedRoute>
                       <VoteCasting />
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/confirmation" 
+                <Route
+                  path="/confirmation"
                   element={
                     <ProtectedRoute>
                       <Confirmation />
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                   <Route 
+                <Route
                   path="/dispute"
                   element={
                     <ProtectedRoute>
                       <DisputeManagement />
                     </ProtectedRoute>
-                  } 
-                
+                  }
+
                 />
                 <Route
-                  path="/nft" 
+                  path="/nft"
                   element={
                     <ProtectedRoute>
                       <NFTManager />
                     </ProtectedRoute>
                   }
-                  />
-                <Route 
-                  path="/create-topic" 
+                />
+                <Route
+                  path="/create-topic"
                   element={
                     <ProtectedRoute>
                       <CreateTopic />
                     </ProtectedRoute>
                   }
                 />
-                <Route 
-                  path="/admin-page" 
+                <Route
+                  path="/admin-page"
                   element={
                     <AdminRoute>
                       <AdminPage />
                     </AdminRoute>
                   }
                 />
-                <Route 
-                  path="/analytics" 
+                <Route
+                  path="/analytics"
                   element={
                     <ProtectedRoute>
                       <AnalyticsDashboard />
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/admin" 
+                <Route
+                  path="/admin"
                   element={
                     <AdminRoute>
                       <AdminDispute />
                     </AdminRoute>
-                  } 
+                  }
                 />
 
                 <Route path="/dashboard" element={<VotingDashboard />} />
@@ -229,9 +229,9 @@ function App() {
                 <Route path="/analytics" element={<AnalyticsDashboard />} />
                 <Route path="/admin" element={<AdminDispute />} />
                 <Route path="/voiceassitantpage" element={<VoiceAssistantPage />} />
-                <Route path='tracking' element={<Tracking/>}/>
+                <Route path='tracking' element={<Tracking />} />
                 <Route path="*" element={<NotFound />} />
-                
+
               </Routes>
               <Footer />
             </div>
