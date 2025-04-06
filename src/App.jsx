@@ -132,7 +132,7 @@ function App() {
       <AuthProvider>
         <VotingProvider>
           <Router>
-            <div className="min-h-screen bg-gradient-to-br from-blue-900 to-purple-900 text-white font-sans">
+            <div className="min-h-screen bg-[#E4EFE7] text-black font-sans">
               <VoiceAssistant />
               <FloatingAssistantButton/>
               <GTranslate />
