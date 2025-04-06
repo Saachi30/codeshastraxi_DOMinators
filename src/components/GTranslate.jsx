@@ -32,7 +32,7 @@ const GTranslate = () => {
       style={{
         position: 'absolute',
         top: '1rem',
-        right: '0.2rem',
+        right: '0.6rem',
         opacity: 0.2,
         zIndex: 1000,
         backgroundColor: 'white',

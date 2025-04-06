@@ -572,6 +572,9 @@ const Header = () => {
                 )
               ))}
             </div>
+            <div>
+
+         
             <Link to="/analytics">
             <button
                
@@ -587,9 +590,10 @@ const Header = () => {
             >
               Log Out
             </button> */}
-            <button className="p-2 text-[#7FA56D] hover:text-[#99BC85] transition-colors duration-200">
+            <button className="p-2 pl-5 text-[#7FA56D] hover:text-[#99BC85] transition-colors duration-200">
     <LanguageIcon style={{ fontSize: 28 }} />
   </button>
+  </div>
 
           </div>
         </motion.nav>

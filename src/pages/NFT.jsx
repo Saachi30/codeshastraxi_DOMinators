@@ -335,7 +335,7 @@ const NFTManager = () => {
             {/* Right Column - Player Stats and Selected NFT */}
             <div className="space-y-6">
               {/* Player Stats Card */}
-              <div className="bg-gradiant-b from-[#E4EFE7] via- [#E4EFE7] to-white border border-gray-700 rounded-xl overflow-hidden">
+              <div className="bg-gradiant-b from-[#E4EFE7] to-[#E4EFE7]  border border-gray-700 rounded-xl overflow-hidden">
                 <div className="p-4 border-b border-gray-700">
                   <h2 className="text-xl text-[#99BC85] font-bold">Player Stats</h2>
                 </div>
@@ -400,34 +400,34 @@ const NFTManager = () => {
               
               {/* Selected NFT Details */}
               {selectedNft && (
-                <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
+                <div className="bg-gradiant-b from-[#E4EFE7] via-[#E4EFE7] to-white border border-gray-700 rounded-xl overflow-hidden">
                   <div className="p-4 border-b border-gray-700">
-                    <h2 className="text-xl font-bold">NFT Details</h2>
+                    <h2 className="text-xl text-[#99BC85] font-bold">NFT Details</h2>
                   </div>
                   
                   <div className="p-4">
-                    <h3 className="font-bold text-lg mb-2">{selectedNft.metadata.name}</h3>
-                    <p className="text-gray-400 mb-4">{selectedNft.metadata.description}</p>
+                    <h3 className="font-bold text-black text-lg mb-2">{selectedNft.metadata.name}</h3>
+                    <p className="text-gray-600 mb-4">{selectedNft.metadata.description}</p>
                     
                     {/* Token URI Display - Added this section */}
-                    <div className="mb-4 bg-gray-700 p-3 rounded-lg overflow-hidden">
+                    <div className="mb-4 bg-[#99BC85] p-3 rounded-lg overflow-hidden">
                       <h4 className="font-medium mb-1 flex items-center">
                         <ExternalLink size={16} className="mr-1" /> Token URI
                       </h4>
                       <p className="text-xs text-gray-300 break-all">{selectedNft.tokenURI}</p>
                     </div>
                     
-                    <h4 className="font-medium mb-2">Attributes</h4>
+                    <h4 className="font-medium mb-2 text-black">Attributes</h4>
                     <div className="space-y-2 mb-4">
                       {selectedNft.metadata.attributes.map((attr, index) => (
-                        <div key={index} className="flex justify-between bg-gray-700 p-2 rounded">
-                          <span className="text-gray-400">{attr.trait_type}</span>
+                        <div key={index} className="flex justify-between bg-[#E4EFE7] p-2 rounded">
+                          <span className="text-gray-800">{attr.trait_type}</span>
                           <span className="font-medium">{attr.value}</span>
                         </div>
                       ))}
                     </div>
                     
-                    <div className="bg-blue-900/30 border border-blue-700/50 rounded-lg p-3 flex items-start">
+                    <div className="bg-[#99BC85] border border-blue-700/50 rounded-lg p-3 flex items-start">
                       <Gift className="text-blue-500 mr-2 mt-0.5" />
                       <div>
                         <h4 className="font-medium">Rewards Unlocked</h4>
