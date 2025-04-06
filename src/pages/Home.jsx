@@ -75,13 +75,13 @@ const HomePage = () => {
   }, []);
 
   return (
-    <div className="flex flex-col min-h-screen pt-22 bg-[#FDFAF6]">
+    <div className="flex flex-col min-h-screen mx-auto pt-22 bg-[#FDFAF6]">
       
-      <main className="flex-grow">
+      <main className="flex-grow mx-auto">
         {/* Hero Section */}
         <section 
           ref={vantaRef}
-          className="relative py-16 md:py-24 text-gray-800 overflow-hidden"
+          className="relative py-16 md:py-24 text-gray-800 overflow-hidden mx-auto"
           style={{ height: '600px' }}
         >
           <div className="absolute inset-0 bg-[#FAF1E6]/50 backdrop-blur-sm"></div>

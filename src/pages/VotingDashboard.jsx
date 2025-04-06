@@ -254,7 +254,11 @@ const VotingDashboard = () => {
     }
   }, [topicId]);
   const handleElectionSelect = (election) => {
-    navigate(`/vote/${election.topicId}`);
+    if (election.topicId === "2") { // Testing DJ election
+      navigate('/casting');
+    } else {
+      navigate(`/vote/${election.topicId}`);
+    }
   };
   const votingMethods = {
     standard: { name: "Standard Voting", icon: "📝" },

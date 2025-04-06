@@ -36,6 +36,7 @@ import FloatingAssistantButton from './components/FloatingAssistantButton';
 import GTranslate from './components/GTranslate';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import QuadraticVoting from './pages/QuadraticVoting';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -170,6 +171,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <Confirmation />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/casting"
+                  element={
+                    <ProtectedRoute>
+                      <QuadraticVoting/>
                     </ProtectedRoute>
                   }
                 />
