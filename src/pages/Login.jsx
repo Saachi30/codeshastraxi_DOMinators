@@ -332,7 +332,7 @@ const Login = ({ toggleAuth }) => {
             <div className="mt-6 text-center">
               <p className="mb-4 text-blue-600">{message || "Center your face in the frame and click Verify."}</p>
               <button
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:text-gray-200"
+                className="px-6 py-3 bg-[#99BC85] text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:text-gray-200"
                 onClick={scanFace}
                 disabled={loading || !cameraActive}
               >

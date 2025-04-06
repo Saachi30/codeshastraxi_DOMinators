@@ -349,7 +349,7 @@ const Signup = ({ toggleAuth }) => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-[#99BC85] rounded-lg font-medium text-white shadow-sm hover:bg-blue-700 transition-colors disabled:bg-[#E4EFE7]disabled:cursor-not-allowed"
+            className="w-full py-3 bg-[#99BC85] rounded-lg font-medium text-white shadow-sm hover:bg-[#E4EFE7] transition-colors disabled:bg-[#E4EFE7]disabled:cursor-not-allowed"
           >
             {loading ? "Creating Account..." : "Create Account"}
           </button>
