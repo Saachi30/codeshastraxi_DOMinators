@@ -91,7 +91,7 @@ const VoteConfirmation = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 to-purple-900 flex flex-col items-center justify-center px-4 py-12">
+    <div className="min-h-screen pt-20 bg-gradient-to-br from-indigo-900 to-purple-900 flex flex-col items-center justify-center px-4 py-12">
       {showConfetti && <Confetti recycle={false} numberOfPieces={500} />}
       
       <motion.div 

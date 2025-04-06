@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ethers } from 'ethers';
-import { Unplug, SendHorizontal, MessageCircle } from 'lucide-react';
+import { Unplug, SendHorizontal, MessageCircle, Mic, MicOff } from 'lucide-react';
+import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import abi from '../abi.json';
 
 const ZKVoteChatbot = () => {
@@ -22,11 +23,36 @@ const ZKVoteChatbot = () => {
   const signer = provider?.getSigner();
   const contract = signer ? new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer) : null;
 
+  // Speech recognition hook
+  const {
+    transcript,
+    listening,
+    resetTranscript,
+    browserSupportsSpeechRecognition
+  } = useSpeechRecognition();
+
+  // Update input field with transcript
+  useEffect(() => {
+    if (transcript) {
+      setInput(transcript);
+    }
+  }, [transcript]);
+
   useEffect(() => {
     if (chatRef.current) {
       chatRef.current.scrollTop = chatRef.current.scrollHeight;
     }
   }, [messages]);
+
+  const toggleListening = () => {
+    if (listening) {
+      SpeechRecognition.stopListening();
+    } else {
+      resetTranscript();
+      setInput('');
+      SpeechRecognition.startListening({ continuous: true });
+    }
+  };
 
   const addMessage = (text, isBot = false) => {
     setMessages(prev => [...prev, { text, isBot, timestamp: Date.now() }]);
@@ -289,8 +315,14 @@ const ZKVoteChatbot = () => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
+    // Stop listening if active
+    if (listening) {
+      SpeechRecognition.stopListening();
+    }
+
     addMessage(input, false);
     setInput('');
+    resetTranscript();
 
     if (!isConnected) {
       addMessage("🔒 Please connect your wallet first to interact with the contract!", true);
@@ -378,6 +410,23 @@ const ZKVoteChatbot = () => {
                 className="flex-1 p-3 bg-gray-800 text-gray-100 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-gray-500 disabled:opacity-70"
                 disabled={isLoading}
               />
+              {browserSupportsSpeechRecognition && (
+                <button
+                  type="button"
+                  onClick={toggleListening}
+                  className={`${
+                    listening ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-700 hover:bg-gray-600'
+                  } text-white p-3 rounded-lg transition-all flex items-center justify-center`}
+                  disabled={isLoading}
+                  aria-label={listening ? "Stop recording" : "Start recording"}
+                >
+                  {listening ? (
+                    <MicOff size={20} className="stroke-current" />
+                  ) : (
+                    <Mic size={20} className="stroke-current" />
+                  )}
+                </button>
+              )}
               <button
                 type="submit"
                 className="bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center"
@@ -387,6 +436,11 @@ const ZKVoteChatbot = () => {
                 <SendHorizontal size={20} className="stroke-current" />
               </button>
             </div>
+            {listening && (
+              <div className="text-xs text-center mt-2 text-indigo-300">
+                Listening... "{transcript}" 
+              </div>
+            )}
           </form>
         </div>
       )}

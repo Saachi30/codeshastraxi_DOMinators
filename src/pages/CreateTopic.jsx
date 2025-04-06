@@ -47,7 +47,7 @@ const CreateTopic = () => {
     { value: 0, label: 'Single Choice' },
     { value: 1, label: 'Multiple Choice' },
     { value: 2, label: 'Ranked Choice' },
-    { value: 3, label: 'Weighted Choice' }
+    { value: 3, label: 'Quadratic Voting' }
   ];
   
   const handleInputChange = (e) => {
@@ -270,15 +270,15 @@ const CreateTopic = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-8 bg-gradient-to-br from-white to-blue-50 rounded-xl shadow-lg border border-blue-100">
+    <div className="max-w-4xl mx-auto p-8 bg-gradient-to-br from-white to-[#E4EFE7] rounded-xl shadow-lg border border-green-100 pt-28">
       <div className="flex items-center mb-8">
-        <div className="bg-blue-600 p-3 rounded-lg shadow-md mr-4">
+        <div className="bg-[#99BC85] p-3 rounded-lg shadow-md mr-4">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="white">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
-        <h1 className="text-3xl font-bold text-blue-800 flex-1">Create New Election</h1>
-        <div className="text-sm text-blue-600 font-medium bg-blue-100 px-3 py-1 rounded-full">
+        <h1 className="text-3xl font-bold text-[#99BC85] flex-1">Create New Election</h1>
+        <div className="text-sm text-green-600 font-medium bg-[#E4EFE7] px-3 py-1 rounded-full">
           Blockchain Voting
         </div>
       </div>
@@ -315,7 +315,7 @@ const CreateTopic = () => {
                   href={`https://etherscan.io/tx/${txHash}`} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-800 truncate block font-mono"
+                  className="text-green-600 hover:text-green-800 truncate block font-mono"
                 >
                   {txHash.substring(0, 20)}...{txHash.substring(txHash.length - 8)}
                 </a>
@@ -324,7 +324,7 @@ const CreateTopic = () => {
                 href={`https://etherscan.io/tx/${txHash}`} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="ml-auto bg-blue-600 text-white text-sm py-2 px-3 rounded hover:bg-blue-700 transition-colors duration-200"
+                className="ml-auto bg-green-600 text-white text-sm py-2 px-3 rounded hover:bg-green-700 transition-colors duration-200"
               >
                 View on Etherscan
               </a>
@@ -338,7 +338,7 @@ const CreateTopic = () => {
           onClick={() => setActiveTab('basic')}
           className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors duration-200 ${
             activeTab === 'basic' 
-              ? 'bg-blue-600 text-white shadow-md' 
+              ? 'bg-[#99BC85] text-white shadow-md' 
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}
         >
@@ -348,7 +348,7 @@ const CreateTopic = () => {
           onClick={() => setActiveTab('choices')}
           className={`flex-1 py-3 px-4 mx-2 rounded-lg font-medium transition-colors duration-200 ${
             activeTab === 'choices' 
-              ? 'bg-blue-600 text-white shadow-md' 
+              ? 'bg-[#99BC85] text-white shadow-md' 
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}
         >
@@ -358,7 +358,7 @@ const CreateTopic = () => {
           onClick={() => setActiveTab('access')}
           className={`flex-1 py-3 px-4 mx-2 rounded-lg font-medium transition-colors duration-200 ${
             activeTab === 'access' 
-              ? 'bg-blue-600 text-white shadow-md' 
+              ? 'bg-[#99BC85] text-white shadow-md' 
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}
         >
@@ -368,7 +368,7 @@ const CreateTopic = () => {
           onClick={() => setActiveTab('settings')}
           className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors duration-200 ${
             activeTab === 'settings' 
-              ? 'bg-blue-600 text-white shadow-md' 
+              ? 'bg-[#99BC85] text-white shadow-md' 
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}
         >
@@ -492,7 +492,7 @@ const CreateTopic = () => {
               <button
                 type="button"
                 onClick={addChoice}
-                className="inline-flex items-center px-3 py-2 border border-blue-500 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200"
+                className="inline-flex items-center px-3 py-2 border border-green-500 text-[#99BC85] bg-green-50 rounded-lg hover:bg-green-100 transition-colors duration-200"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="mr-1">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -538,9 +538,9 @@ const CreateTopic = () => {
         
         {activeTab === 'access' && (
           <div className="space-y-6">
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-6">
-              <h3 className="font-semibold text-blue-700 mb-2">Access Control Settings</h3>
-              <p className="text-sm text-blue-600">
+            <div className="bg-[#E4EFE7] p-4 rounded-lg border border-blue-100 mb-6">
+              <h3 className="font-semibold text-[#99BC85] mb-2">Access Control Settings</h3>
+              <p className="text-sm text-green-600">
                 Determine who can participate in this election. You can either allow all registered users or restrict to specific participants.
               </p>
             </div>
@@ -736,14 +736,14 @@ const CreateTopic = () => {
         {/* Progress bar */}
         <div className="mt-6 pt-6 border-t border-gray-200">
           <div className="flex justify-between text-sm mb-2">
-            <span className="text-blue-600 font-medium">Form completion</span>
+            <span className="text-[#99BC85] font-medium">Form completion</span>
             <span className="text-gray-600 font-medium">
               Step {activeTab === 'basic' ? '1' : activeTab === 'choices' ? '2' : activeTab === 'access' ? '3' : '4'} of 4
             </span>
           </div>
           <div className="bg-gray-200 rounded-full h-2 overflow-hidden">
             <div 
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-in-out" 
+              className="bg-[#99BC85] h-2 rounded-full transition-all duration-300 ease-in-out" 
               style={{ 
                 width: `${activeTab === 'basic' ? 25 : activeTab === 'choices' ? 50 : activeTab === 'access' ? 75 : 100}%` 
               }}
@@ -778,7 +778,7 @@ const CreateTopic = () => {
                 activeTab === 'basic' ? 'choices' : 
                 activeTab === 'choices' ? 'access' : 'settings'
               )}
-              className="py-3 px-6 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center"
+              className="py-3 px-6 bg-[#99BC85] text-white font-medium rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center"
             >
               Next
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="ml-2">

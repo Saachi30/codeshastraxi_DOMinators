@@ -213,9 +213,9 @@ const NFTManager = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-gray-100">
+    <div className="min-h-screen bg-[#FDFAF6] text-gray-100 pt-20">
       {/* Header */}
-      <header className="bg-gray-800 border-b border-gray-700 p-4">
+      <header className="bg-[#99BC85] border-b border-gray-700 p-4">
         <div className="container mx-auto flex justify-between items-center">
           <h1 className="text-xl font-bold flex items-center">
             <Shield className="mr-2" /> ZK Vote NFT Dashboard
@@ -229,7 +229,7 @@ const NFTManager = () => {
             <button 
               onClick={connectWallet} 
               disabled={isConnecting}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg font-medium transition-colors"
+              className="px-4 py-2 bg-green-600 hover:bg-blue-500 rounded-lg font-medium transition-colors"
             >
               {isConnecting ? 'Connecting...' : 'Connect Wallet'}
             </button>
@@ -248,28 +248,28 @@ const NFTManager = () => {
         {!account ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <Shield size={64} className="mb-4 text-blue-500" />
-            <h2 className="text-2xl font-bold mb-2">Welcome to ZK Vote NFT Dashboard</h2>
+            <h2 className="text-2xl text-[#99BC85] font-bold mb-2">Welcome to ZK Vote NFT Dashboard</h2>
             <p className="mb-6 text-gray-400 max-w-md">Connect your wallet to view your participation NFTs and unlock rewards based on your voting history.</p>
             <button 
               onClick={connectWallet}
               disabled={isConnecting}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded-lg font-medium transition-colors"
+              className="px-6 py-3 bg-green-600 hover:bg-green-500 rounded-lg font-medium transition-colors"
             >
               {isConnecting ? 'Connecting...' : 'Connect Wallet'}
             </button>
           </div>
         ) : loading ? (
           <div className="flex justify-center items-center py-16">
-            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-8 h-8 border-4 border-blue-500 text-black border-t-transparent rounded-full animate-spin"></div>
             <p className="ml-2">Loading your NFTs...</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Column - NFT Collection */}
             <div className="lg:col-span-2">
-              <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
+              <div className="bg-[#FAF1E6] border border-gray-700 rounded-xl overflow-hidden">
                 <div className="p-4 border-b border-gray-700">
-                  <h2 className="text-xl font-bold">Your NFT Collection</h2>
+                  <h2 className="text-xl text-[#99BC85] font-bold">Your NFT Collection</h2>
                   <p className="text-gray-400 text-sm">Collect more NFTs by participating in ZK Vote elections</p>
                 </div>
                 
@@ -296,9 +296,9 @@ const NFTManager = () => {
                         <div 
                           key={nft.id}
                           onClick={() => setSelectedNft(nft)}
-                          className={`bg-gray-700 rounded-lg overflow-hidden border-2 ${rarityColor} hover:scale-105 transition-transform cursor-pointer ${selectedNft?.id === nft.id ? 'ring-2 ring-blue-400' : ''}`}
+                          className={`bg-[#E4EFE7] rounded-lg overflow-hidden border-2 ${rarityColor} hover:scale-105 transition-transform cursor-pointer ${selectedNft?.id === nft.id ? 'ring-2 ring-blue-400' : ''}`}
                         >
-                          <div className="aspect-square bg-gray-600 relative">
+                          <div className="aspect-square bg-[#99BC85] relative">
                             <img 
                               src={nft.metadata.image} 
                               alt={nft.metadata.name}
@@ -309,7 +309,7 @@ const NFTManager = () => {
                             </div>
                           </div>
                           
-                          <div className="p-3">
+                          <div className="p-3 text-gray-700">
                             <h3 className="font-bold mb-1">{nft.metadata.name}</h3>
                             <div className="flex items-center text-xs">
                               <span className={`inline-block w-2 h-2 rounded-full mr-1 ${
@@ -335,19 +335,19 @@ const NFTManager = () => {
             {/* Right Column - Player Stats and Selected NFT */}
             <div className="space-y-6">
               {/* Player Stats Card */}
-              <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
+              <div className="bg-gradiant-b from-[#E4EFE7] to-[#E4EFE7]  border border-gray-700 rounded-xl overflow-hidden">
                 <div className="p-4 border-b border-gray-700">
-                  <h2 className="text-xl font-bold">Player Stats</h2>
+                  <h2 className="text-xl text-[#99BC85] font-bold">Player Stats</h2>
                 </div>
                 
                 <div className="p-4">
                   {/* Level Progress */}
                   <div className="mb-4">
                     <div className="flex justify-between items-center mb-1">
-                      <span className="font-medium">Level {rewards.level}</span>
+                      <span className="font-medium text-black">Level {rewards.level}</span>
                       <span className="text-sm text-gray-400">{rewards.experience}/{rewards.nextLevelExp} XP</span>
                     </div>
-                    <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+                    <div className="h-2 bg-[#99BC85] rounded-full overflow-hidden">
                       <div 
                         className="h-full bg-blue-500" 
                         style={{ width: `${Math.min(100, (rewards.experience % 100) * 100 / rewards.nextLevelExp)}%` }}
@@ -357,27 +357,27 @@ const NFTManager = () => {
                   
                   {/* Stats Grid */}
                   <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="bg-gray-700 p-3 rounded-lg">
-                      <div className="text-gray-400 text-xs mb-1">Collection</div>
+                    <div className="bg-[#99BC85] p-3 rounded-lg">
+                      <div className="text-black text-xs mb-1">Collection</div>
                       <div className="text-xl font-bold">{nfts.length} NFTs</div>
                     </div>
-                    <div className="bg-gray-700 p-3 rounded-lg">
-                      <div className="text-gray-400 text-xs mb-1">Voting Power</div>
+                    <div className="bg-[#99BC85] p-3 rounded-lg">
+                      <div className="text-black text-xs mb-1">Voting Power</div>
                       <div className="text-xl font-bold">{rewards.votingPower}</div>
                     </div>
-                    <div className="bg-gray-700 p-3 rounded-lg">
-                      <div className="text-gray-400 text-xs mb-1">Voting Streak</div>
+                    <div className="bg-[#99BC85] p-3 rounded-lg">
+                      <div className="text-black text-xs mb-1">Voting Streak</div>
                       <div className="text-xl font-bold">{rewards.streak} Days</div>
                     </div>
-                    <div className="bg-gray-700 p-3 rounded-lg">
-                      <div className="text-gray-400 text-xs mb-1">Badges</div>
+                    <div className="bg-[#99BC85] p-3 rounded-lg">
+                      <div className="text-black text-xs mb-1">Badges</div>
                       <div className="text-xl font-bold">{rewards.badges.length}</div>
                     </div>
                   </div>
                   
                   {/* Badges */}
-                  <div>
-                    <h3 className="font-medium mb-2">Badges</h3>
+                  <div className=" text-black">
+                    <h3 className="font-medium mb-2 text-black">Badges</h3>
                     <div className="flex flex-wrap gap-2">
                       {rewards.badges.map((badge, index) => (
                         <div 
@@ -400,34 +400,34 @@ const NFTManager = () => {
               
               {/* Selected NFT Details */}
               {selectedNft && (
-                <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
+                <div className="bg-gradiant-b from-[#E4EFE7] via-[#E4EFE7] to-white border border-gray-700 rounded-xl overflow-hidden">
                   <div className="p-4 border-b border-gray-700">
-                    <h2 className="text-xl font-bold">NFT Details</h2>
+                    <h2 className="text-xl text-[#99BC85] font-bold">NFT Details</h2>
                   </div>
                   
                   <div className="p-4">
-                    <h3 className="font-bold text-lg mb-2">{selectedNft.metadata.name}</h3>
-                    <p className="text-gray-400 mb-4">{selectedNft.metadata.description}</p>
+                    <h3 className="font-bold text-black text-lg mb-2">{selectedNft.metadata.name}</h3>
+                    <p className="text-gray-600 mb-4">{selectedNft.metadata.description}</p>
                     
                     {/* Token URI Display - Added this section */}
-                    <div className="mb-4 bg-gray-700 p-3 rounded-lg overflow-hidden">
+                    <div className="mb-4 bg-[#99BC85] p-3 rounded-lg overflow-hidden">
                       <h4 className="font-medium mb-1 flex items-center">
                         <ExternalLink size={16} className="mr-1" /> Token URI
                       </h4>
                       <p className="text-xs text-gray-300 break-all">{selectedNft.tokenURI}</p>
                     </div>
                     
-                    <h4 className="font-medium mb-2">Attributes</h4>
+                    <h4 className="font-medium mb-2 text-black">Attributes</h4>
                     <div className="space-y-2 mb-4">
                       {selectedNft.metadata.attributes.map((attr, index) => (
-                        <div key={index} className="flex justify-between bg-gray-700 p-2 rounded">
-                          <span className="text-gray-400">{attr.trait_type}</span>
+                        <div key={index} className="flex justify-between bg-[#E4EFE7] p-2 rounded">
+                          <span className="text-gray-800">{attr.trait_type}</span>
                           <span className="font-medium">{attr.value}</span>
                         </div>
                       ))}
                     </div>
                     
-                    <div className="bg-blue-900/30 border border-blue-700/50 rounded-lg p-3 flex items-start">
+                    <div className="bg-[#99BC85] border border-blue-700/50 rounded-lg p-3 flex items-start">
                       <Gift className="text-blue-500 mr-2 mt-0.5" />
                       <div>
                         <h4 className="font-medium">Rewards Unlocked</h4>
@@ -441,17 +441,17 @@ const NFTManager = () => {
               )}
               
               {/* Incentives Card */}
-              <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
+              <div className="bg[#E4EFE7] border border-gray-700 rounded-xl overflow-hidden">
                 <div className="p-4 border-b border-gray-700">
-                  <h2 className="text-xl font-bold">Unlock More Rewards</h2>
+                  <h2 className="text-xl font-bold text-[#99BC85]">Unlock More Rewards</h2>
                 </div>
                 
                 <div className="p-4 space-y-4">
                   <div className="flex items-start">
                     <Trophy className="text-yellow-500 mr-2 mt-0.5" />
                     <div>
-                      <h3 className="font-medium">Collect 10 NFTs</h3>
-                      <p className="text-sm text-gray-400">Earn the "Democracy Champion" badge and +5 voting power</p>
+                      <h3 className="font-medium text-[#99BC85]">Collect 10 NFTs</h3>
+                      <p className="text-sm text-gray-600">Earn the "Democracy Champion" badge and +5 voting power</p>
                       <div className="mt-1 h-1.5 bg-gray-700 rounded-full overflow-hidden">
                         <div 
                           className="h-full bg-yellow-500" 
@@ -464,8 +464,8 @@ const NFTManager = () => {
                   <div className="flex items-start">
                     <Key className="text-purple-500 mr-2 mt-0.5" />
                     <div>
-                      <h3 className="font-medium">Reach Level 5</h3>
-                      <p className="text-sm text-gray-400">Unlock exclusive voting themes and +2 dispute credits</p>
+                      <h3 className="font-medium text-[#99BC85]">Reach Level 5</h3>
+                      <p className="text-sm text-gray-600">Unlock exclusive voting themes and +2 dispute credits</p>
                       <div className="mt-1 h-1.5 bg-gray-700 rounded-full overflow-hidden">
                         <div 
                           className="h-full bg-purple-500" 
@@ -478,8 +478,8 @@ const NFTManager = () => {
                   <div className="flex items-start">
                     <Star className="text-blue-500 mr-2 mt-0.5" />
                     <div>
-                      <h3 className="font-medium">Find a Legendary NFT</h3>
-                      <p className="text-sm text-gray-400">Earn exclusive voting rights in premium elections</p>
+                      <h3 className="font-medium text-[#99BC85]">Find a Legendary NFT</h3>
+                      <p className="text-sm text-gray-600">Earn exclusive voting rights in premium elections</p>
                     </div>
                   </div>
                 </div>
