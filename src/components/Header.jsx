@@ -399,6 +399,8 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
+import LanguageIcon from '@mui/icons-material/Language';
+
 
 const useScramble = (text, isActive = true, duration = 1000) => {
   const [displayText, setDisplayText] = useState(text);
@@ -585,6 +587,10 @@ const Header = () => {
             >
               Log Out
             </button> */}
+            <button className="p-2 text-[#7FA56D] hover:text-[#99BC85] transition-colors duration-200">
+    <LanguageIcon style={{ fontSize: 28 }} />
+  </button>
+
           </div>
         </motion.nav>
       )}
