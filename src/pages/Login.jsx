@@ -273,7 +273,7 @@ const Login = ({ toggleAuth }) => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-50 text-black border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2 bg-gray-50 text-black border border-gray-300 rounded-lg focus:ring-[#99BC85] focus:border-[#99BC85]"
                 placeholder="Enter your email"
               />
             </div>
@@ -283,7 +283,7 @@ const Login = ({ toggleAuth }) => {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 text-black py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 text-black py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-[#99BC85] focus:[#99BC85"
                 placeholder="Enter your password"
               />
             </div>
@@ -450,29 +450,29 @@ const Login = ({ toggleAuth }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
     >
-      <h2 className="text-2xl md:text-3xl font-bold text-center mb-2 text-blue-600">Secure Login</h2>
+      <h2 className="text-2xl md:text-3xl font-bold text-center mb-2 text-[#99BC85]"> Login</h2>
       <p className="text-center text-gray-600 mb-6">Verify your identity to continue</p>
       
       <div className="flex justify-center mb-6">
         <div className="inline-flex bg-gray-100 rounded-lg p-1">
           <button 
-            className={`px-4 py-2 rounded-md transition-colors ${authMethod === 'face' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-200'}`}
+            className={`px-4 py-2 rounded-md transition-colors ${authMethod === 'face' ? 'bg-[#99BC85] text-white' : 'text-gray-700 hover:bg-gray-200'}`}
             onClick={() => setAuthMethod('face')}
           >
             Face
           </button>
-          <button 
-            className={`px-4 py-2 rounded-md transition-colors ${authMethod === 'sms' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-200'}`}
+          {/* <button 
+            className={`px-4 py-2 rounded-md transition-colors ${authMethod === 'sms' ? 'bg-[#99BC85] text-white' : 'text-gray-700 hover:bg-gray-200'}`}
             onClick={() => setAuthMethod('sms')}
           >
             SMS
           </button>
           <button 
-            className={`px-4 py-2 rounded-md transition-colors ${authMethod === 'hardware' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-200'}`}
+            className={`px-4 py-2 rounded-md transition-colors ${authMethod === 'hardware' ? 'bg-[#99BC85] text-white' : 'text-gray-700 hover:bg-gray-200'}`}
             onClick={() => setAuthMethod('hardware')}
           >
             Hardware
-          </button>
+          </button> */}
         </div>
       </div>
       

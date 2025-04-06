@@ -203,7 +203,7 @@ const Signup = ({ toggleAuth }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
     >
-      <h2 className="text-2xl md:text-3xl font-bold text-center mb-2 text-blue-600">Create Account</h2>
+      <h2 className="text-2xl md:text-3xl font-bold text-center mb-2 text-[#99BC85]">Create Account</h2>
       <p className="text-center text-gray-600 mb-6">Register to access secure voting</p>
       
       {loading && (
@@ -349,7 +349,7 @@ const Signup = ({ toggleAuth }) => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-blue-600 rounded-lg font-medium text-white shadow-sm hover:bg-blue-700 transition-colors disabled:bg-blue-400 disabled:cursor-not-allowed"
+            className="w-full py-3 bg-[#99BC85] rounded-lg font-medium text-white shadow-sm hover:bg-blue-700 transition-colors disabled:bg-[#E4EFE7]disabled:cursor-not-allowed"
           >
             {loading ? "Creating Account..." : "Create Account"}
           </button>
