@@ -303,34 +303,35 @@ const ZKVoteChatbot = () => {
     }
   };
 
+  
   return (
-    <div className="fixed bottom-4 right-4 z-50">
+    <div className="fixed bottom-6 right-6 z-50">
       <button
         onClick={() => setIsChatOpen(!isChatOpen)}
-        className="bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-full shadow-lg transition-colors"
+        className="bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-full shadow-xl transition-all transform hover:scale-105"
         aria-label="Open chat"
       >
-        <MessageCircle size={24} />
+        <MessageCircle size={24} className="stroke-current" />
       </button>
 
       {isChatOpen && (
-        <div className="absolute bottom-16 right-0 w-96 h-[500px] bg-white rounded-lg shadow-lg flex flex-col border border-gray-200">
-          <div className="flex justify-between items-center p-4 border-b bg-blue-500 text-white rounded-t-lg">
+        <div className="absolute bottom-20 right-0 w-96 h-[500px] bg-gray-900 rounded-xl shadow-2xl flex flex-col border border-gray-700 overflow-hidden">
+          <div className="flex justify-between items-center p-4 bg-indigo-700 text-white">
             <div>
               <h1 className="text-xl font-bold">ZKVote Assistant</h1>
-              <p className="text-xs opacity-80">Ask about voting topics, disputes, or NFTs</p>
+              <p className="text-xs text-indigo-200">Ask about voting topics, disputes, or NFTs</p>
             </div>
             {!isConnected ? (
               <button
                 onClick={connectWallet}
-                className="bg-white text-blue-500 hover:bg-gray-100 px-3 py-1 rounded-lg transition-colors text-sm flex items-center gap-1"
+                className="bg-white text-indigo-700 hover:bg-gray-100 px-3 py-1 rounded-lg transition-colors text-sm flex items-center gap-1 font-medium"
                 disabled={isLoading}
               >
-                <Unplug size={14} />
+                <Unplug size={14} className="stroke-current" />
                 Connect
               </button>
             ) : (
-              <span className="text-xs bg-blue-600 px-3 py-1 rounded-lg">
+              <span className="text-xs bg-indigo-800 px-3 py-1 rounded-lg font-medium">
                 {formatAddress(walletAddress)}
               </span>
             )}
@@ -338,7 +339,7 @@ const ZKVoteChatbot = () => {
 
           <div 
             ref={chatRef}
-            className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50"
+            className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-800"
           >
             {messages.map((msg, idx) => (
               <div
@@ -347,8 +348,8 @@ const ZKVoteChatbot = () => {
               >
                 <div
                   className={`max-w-[85%] p-3 rounded-lg whitespace-pre-wrap ${
-                    msg.isBot ? 'bg-white border border-gray-200' : 'bg-blue-500 text-white'
-                  }`}
+                    msg.isBot ? 'bg-gray-700 text-gray-100' : 'bg-indigo-600 text-white'
+                  } ${msg.isBot ? 'rounded-tl-none' : 'rounded-tr-none'}`}
                 >
                   {msg.text}
                 </div>
@@ -356,34 +357,34 @@ const ZKVoteChatbot = () => {
             ))}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="max-w-[85%] p-3 rounded-lg bg-white border border-gray-200">
+                <div className="max-w-[85%] p-3 rounded-lg bg-gray-700 text-gray-100 rounded-tl-none">
                   <div className="flex space-x-2">
-                    <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"></div>
-                    <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                    <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                    <div className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce"></div>
+                    <div className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '0.4s' }}></div>
                   </div>
                 </div>
               </div>
             )}
           </div>
 
-          <form onSubmit={handleSubmit} className="p-3 border-t bg-white rounded-b-lg">
+          <form onSubmit={handleSubmit} className="p-3 border-t border-gray-700 bg-gray-900">
             <div className="flex gap-2">
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask about topics, disputes, NFTs, or voting..."
-                className="flex-1 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-70"
+                className="flex-1 p-3 bg-gray-800 text-gray-100 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-gray-500 disabled:opacity-70"
                 disabled={isLoading}
               />
               <button
                 type="submit"
-                className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg transition-colors disabled:opacity-50"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center"
                 disabled={isLoading || !input.trim()}
                 aria-label="Send message"
               >
-                <SendHorizontal size={20} />
+                <SendHorizontal size={20} className="stroke-current" />
               </button>
             </div>
           </form>
