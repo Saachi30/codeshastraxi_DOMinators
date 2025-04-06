@@ -261,7 +261,7 @@ const VotingDashboard = () => {
   };
   
   const categories = {
-    government: { name: "Government", icon: "🏛️", color: "#99BC85" },
+   
     society: { name: "Society", icon: "🏙️", color: "#A7C4BC" },
     college: { name: "College", icon: "🎓", color: "#BDBB99" },
     other: { name: "Global", icon: "🌍", color: "#E4D1B9" }
