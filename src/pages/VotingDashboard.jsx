@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ethers } from 'ethers';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, collection, getDocs, query, where } from 'firebase/firestore';
@@ -21,7 +21,7 @@ const VotingDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [firebaseTopics, setFirebaseTopics] = useState([]);
-
+  const { topicId } = useParams();
   const contractABI = [
     {
       "inputs": [],

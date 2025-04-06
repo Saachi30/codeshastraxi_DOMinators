@@ -5,14 +5,155 @@ import { Link } from 'react-router-dom';
 import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
 import { useParams } from 'react-router-dom';
 
-// Define the contract ABI and address
-const contractAddress = '0x12b4166e7C81dF1b47722746bD511Fca44dcb7EC';
+// Contract ABI (using only the upper attached ABI)
 const contractABI = [
-  "function getTopicDetails(uint256 id) view returns (string name, string description, string[] choices, uint8 method, uint256 startTime, uint256 endTime, string location, uint256 minVotingPower, bool isVotingOpen, uint256[] voteCounts)",
-  "function vote(uint256 topicId, bytes32 nullifier, bytes32 voterCommitment, string locationProof, uint256[] voteData)",
-  "function mintParticipationNFT(string tokenURI, bytes32 nullifier, bytes32 voterCommitment)",
-  "function getNFTDetails(uint256 tokenId) view returns (address owner, string tokenURI)"
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
+      }
+    ],
+    "name": "getTopicDetails",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "description",
+        "type": "string"
+      },
+      {
+        "internalType": "string[]",
+        "name": "choices",
+        "type": "string[]"
+      },
+      {
+        "internalType": "enum ZKVote.VotingMethod",
+        "name": "method",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "startTime",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "endTime",
+        "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "location",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "minVotingPower",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "isVotingOpen",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "voteCounts",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "topicId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "nullifier",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "voterCommitment",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "string",
+        "name": "locationProof",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "voteData",
+        "type": "uint256[]"
+      }
+    ],
+    "name": "vote",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "tokenURI",
+        "type": "string"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "nullifier",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "voterCommitment",
+        "type": "bytes32"
+      }
+    ],
+    "name": "mintParticipationNFT",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getNFTDetails",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "tokenURI",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
 ];
+
+const contractAddress = '0x12b4166e7C81dF1b47722746bD511Fca44dcb7EC';
 
 // NFT Viewer Component with light theme
 const NFTViewer = ({ commitment, nullifier, onClose, onMintNFT }) => {
@@ -154,9 +295,10 @@ const ZKVote = () => {
   const [ipError, setIpError] = useState(null);
   const [electionDetails, setElectionDetails] = useState(null);
   const [locationVerified, setLocationVerified] = useState(false);
+  
+  // Properly handle the topic ID from URL params
   const { id } = useParams();
-  console.log(id)
-  const numericTopicId = parseInt(id, 10);
+  const topicId = id ? parseInt(id, 10) : null;
 
   // Connect wallet
   const connectWallet = async () => {
@@ -220,17 +362,24 @@ const ZKVote = () => {
   const fetchElectionDetails = async (id) => {
     try {
       const db = getFirestore();
-    const querySnapshot = await getDocs(
-      query(collection(db, "elections"), where("id", "==", numericTopicId.toString()))
-    );
+      const querySnapshot = await getDocs(
+        query(collection(db, "elections"), 
+        where("id", "==", topicId.toString()) // Ensure string comparison
+      ));
       
       if (!querySnapshot.empty) {
         const docSnapshot = querySnapshot.docs[0];
         const electionData = docSnapshot.data();
+        
+        // Convert string IDs to numbers for consistency
+        if (electionData.id) {
+          electionData.id = parseInt(electionData.id, 10);
+        }
+        
         setElectionDetails(electionData);
         return electionData;
       } else {
-        console.log("No election found with id:", id);
+        console.log("No election found with id:", topicId);
         setElectionDetails(null);
         return null;
       }
@@ -240,6 +389,7 @@ const ZKVote = () => {
       return null;
     }
   };
+
 
   // Verify if user's location matches the election location
   const verifyLocation = (ipData, electionData) => {
