@@ -4,7 +4,9 @@ import { getFirestore, doc, setDoc } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import Papa from 'papaparse';
 import abi from '../abi.json';
+// import { sendElectionInvitations } from '../components/Email';
 import { sendElectionInvitations } from '../components/Email';
+
 const CreateTopic = () => {
   const fileInputRef = useRef(null);
   
@@ -157,6 +159,37 @@ const CreateTopic = () => {
   //   }
   // };
   
+  // const saveToFirebase = async (topicId) => {
+  //   try {
+  //     const db = getFirestore();
+  //     const uniqueCode = generateUniqueCode();
+  //     const electionId = uuidv4();
+      
+  //     const electionData = {
+  //       topicId,
+  //       name: formData.name,
+  //       description: formData.description,
+  //       pincode: formData.pincode,
+  //       type: formData.type,
+  //       creatorEmail: formData.creatorEmail,
+  //       participants: formData.allowAllUsers ? [] : formData.participants,
+  //       allowAllUsers: formData.allowAllUsers,
+  //       uniqueCode,
+  //       txHash,
+  //       createdAt: new Date().toISOString(),
+  //       duration: Number(formData.duration),
+  //       votingMethod: Number(formData.votingMethod)
+  //     };
+      
+  //     await setDoc(doc(db, "elections", electionId), electionData);
+      
+  //     return { uniqueCode, electionData };
+  //   } catch (error) {
+  //     console.error("Firebase error:", error);
+  //     throw new Error("Failed to save election data to Firebase");
+  //   }
+  // };
+
   const saveToFirebase = async (topicId) => {
     try {
       const db = getFirestore();
@@ -181,7 +214,24 @@ const CreateTopic = () => {
       
       await setDoc(doc(db, "elections", electionId), electionData);
       
-      return { uniqueCode, electionData };
+      // Send email invitations if there are specific participants
+      if (!formData.allowAllUsers && formData.participants.length > 0) {
+        try {
+          await sendElectionInvitations({
+            electionName: formData.name,
+            electionDescription: formData.description,
+            creatorEmail: formData.creatorEmail,
+            uniqueCode,
+            participants: formData.participants
+          });
+        } catch (emailError) {
+          console.error("Failed to send emails:", emailError);
+          // Don't throw error here as we don't want to fail the whole process
+          // just because emails failed
+        }
+      }
+      
+      return uniqueCode;
     } catch (error) {
       console.error("Firebase error:", error);
       throw new Error("Failed to save election data to Firebase");
