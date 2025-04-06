@@ -291,7 +291,6 @@ const VotingDashboard = () => {
 
   return (
     <div className="min-h-screen bg-[#FDFAF6] pt-24">
-      <Header />
       <div className="container mx-auto px-4 py-8">
         {/* Hero Section */}
         <div className="relative overflow-hidden mb-12 text-center bg-[#FAF1E6] p-8 md:p-12 rounded-3xl shadow-lg">

@@ -318,8 +318,6 @@ const Header = () => {
   const navItems = useMemo(() => [], []);
 
   const handleLogout = () => {
-    // 🔐 Add logout logic here: remove token, clear session, etc.
-    // For now just navigate to login
     navigate('/login');
   };
 
@@ -333,58 +331,6 @@ const Header = () => {
   };
 
   return (
-<<<<<<< Updated upstream
-    <AnimatePresence>
-      {!isVisible && (
-        <motion.nav
-          initial="hidden"
-          animate="visible"
-          variants={navbarVariants}
-          className="fixed top-0 w-full z-50 bg-white/60 backdrop-blur-md shadow-sm"
-          style={{ height: '70px' }}
-        >
-          <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
-            <Link to="/home">
-              <span className="font-bold text-3xl bg-gradient-to-r from-[#99BC85] to-[#7FA56D] bg-clip-text text-transparent cursor-pointer">
-              Nishpaksh
-              </span>
-            </Link>
-
-            <div className="hidden md:flex items-center space-x-8">
-              {navItems.map((item) => (
-                item.type === 'dropdown' ? (
-                  <DropdownNavItem
-                    key={item.label}
-                    label={item.label}
-                    items={item.items}
-                    isHovered={hoveredItem === item.label}
-                    onHoverStart={() => setHoveredItem(item.label)}
-                    onHoverEnd={() => setHoveredItem(null)}
-                  />
-                ) : (
-                  <NavItem
-                    key={item.label}
-                    label={item.label}
-                    path={item.path}
-                    isHovered={hoveredItem === item.label}
-                    onHoverStart={() => setHoveredItem(item.label)}
-                    onHoverEnd={() => setHoveredItem(null)}
-                  />
-                )
-              ))}
-            </div>
-
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 text-sm font-semibold text-white bg-[#7FA56D] hover:bg-[#99BC85] rounded-md shadow-sm transition-colors duration-200"
-            >
-              Log Out
-            </button>
-          </div>
-        </motion.nav>
-      )}
-    </AnimatePresence>
-=======
     <header className="bg-blue-600 text-white p-4 shadow-md">
       <div className="container mx-auto flex justify-between items-center">
         <Link to="/" className="text-2xl font-bold">SecureVote</Link>
@@ -419,7 +365,6 @@ const Header = () => {
         </nav>
       </div>
     </header>
->>>>>>> Stashed changes
   );
 };
 

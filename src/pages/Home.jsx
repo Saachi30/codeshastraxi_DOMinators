@@ -76,7 +76,6 @@ const HomePage = () => {
 
   return (
     <div className="flex flex-col min-h-screen pt-22 bg-[#FDFAF6]">
-      <Header />
       
       <main className="flex-grow">
         {/* Hero Section */}
