@@ -33,7 +33,7 @@ const Tracking = () => {
   };
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="container mx-auto py-8 px-4 pt-22">
       <h1 className="text-2xl font-bold mb-6">IP Geolocation Tracking</h1>
       
       <div className="mb-6">

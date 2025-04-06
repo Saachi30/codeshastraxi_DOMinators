@@ -829,19 +829,19 @@ const ZKVote = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6">
+    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 pt-10">
       <div className="max-w-4xl mx-auto">
         {/* Header Card */}
-        <div className="bg-white rounded-xl shadow-md overflow-hidden mb-8 border border-gray-200">
-          <div className="bg-gradient-to-r from-indigo-600 to-blue-600 px-6 py-8 text-white">
+        <div className="bg-white rounded-xl shadow-md overflow-hidden mb-8 border border-gray-200 pt-12">
+          <div className="bg-gradient-to-r from-[#99BC85] to-[#7FA56D] px-6 py-8 text-white">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between">
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">ZKVote</h1>
                 <p className="mt-1 text-indigo-100">Private and Secure Blockchain Voting Platform</p>
               </div>
-              <div className="mt-4 md:mt-0">
+              <div className="mt-4 md:mt-0 text-black">
                 {connected ? (
-                  <div className="flex items-center bg-white bg-opacity-20 rounded-lg px-4 py-2">
+                  <div className="flex items-center bg-white bg-opacity-20 rounded-lg px-4 text-black py-2">
                     <div className="h-3 w-3 bg-green-400 rounded-full mr-2"></div>
                     <span className="text-sm font-medium">
                       {account.substring(0, 6)}...{account.substring(account.length - 4)}
@@ -850,7 +850,7 @@ const ZKVote = () => {
                 ) : (
                   <button 
                     onClick={connectWallet} 
-                    className="px-5 py-2.5 bg-white bg-opacity-10 hover:bg-opacity-20 text-white rounded-lg shadow transition-all font-medium border border-white border-opacity-20"
+                    className="px-5 py-2.5 text-black bg-white bg-opacity-10 hover:bg-opacity-20  rounded-lg shadow transition-all font-medium border border-white border-opacity-20"
                   >
                     Connect Wallet
                   </button>
@@ -891,7 +891,7 @@ const ZKVote = () => {
               />
               <button
                 onClick={handleTopicIdSubmit}
-                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-all font-medium"
+                className="px-6 py-2 bg-[#7FA56D] pointer-cursor text-white rounded-lg transition-all font-medium"
               >
                 Load Topic
               </button>

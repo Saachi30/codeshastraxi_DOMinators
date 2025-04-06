@@ -444,6 +444,8 @@
 
 // export default VoiceAssistant;
 // src/components/VoiceAssistant.jsx
+
+
 import { useEffect, useState } from 'react';
 import { collection, query, where, getDocs, orderBy, limit, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../services/firebase';
