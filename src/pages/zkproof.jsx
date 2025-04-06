@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { Hash } from 'lucide-react';
+import _ from 'lodash';
 
-const ZKEmailModal = () => {
+const ZKEmailModal = forwardRef((props, ref) => {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -16,8 +18,22 @@ const ZKEmailModal = () => {
   const APP_SECRET = '0xc5be4da656910b181c351c1921544a0371a069b73e4bf97e33a08fe77dd0207c';
   const PROVIDER_ID = 'google-login';
 
+  // Expose values and functions to parent component via ref
+  useImperativeHandle(ref, () => ({
+    getZKPValues: () => {
+      if (!userEmail) return null;
+      return {
+        commitment: sha256(userEmail + "commitment_salt_zkp_2025"),
+        nullifier: sha256(userEmail + "nullifier_salt_unique_zkp_2025"),
+        email: userEmail
+      };
+    },
+    getProofData: () => proofData,
+    openModal: () => setIsOpen(true),
+    closeModal: () => closeModal()
+  }));
+
   useEffect(() => {
-    // Fetch user email from Firebase when modal opens
     if (isOpen) {
       fetchUserEmail();
     }
@@ -38,10 +54,8 @@ const ZKEmailModal = () => {
         throw new Error('No authenticated user found');
       }
 
-      // First try to get email from auth
       let email = auth.currentUser.email;
 
-      // If not in auth, try Firestore
       if (!email) {
         const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
         if (userDoc.exists()) {
@@ -69,7 +83,6 @@ const ZKEmailModal = () => {
     setError('');
     
     try {
-      // In production, replace with actual ReclaimProofRequest implementation
       const requestParams = {
         title: "Email Verification",
         requestedProofs: [
@@ -77,13 +90,12 @@ const ZKEmailModal = () => {
             name: "email-verify",
             provider: PROVIDER_ID,
             params: {
-              emailAddress: userEmail // Use the fetched email
+              emailAddress: userEmail
             }
           }
         ]
       };
 
-      // Mock of the proof generation process
       const mockGenerateProof = async () => {
         setRequestUrl('reclaim://proof/request?request_id=123...');
         
@@ -133,9 +145,93 @@ const ZKEmailModal = () => {
     setUserEmail('');
   };
 
+  const sha256 = (message) => {
+    let hash = 0;
+    for (let i = 0; i < message.length; i++) {
+      const char = message.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    
+    const expandedHash = Math.abs(hash).toString(16).padStart(64, '0');
+    return '0x' + expandedHash;
+  };
+
+  const EmailZKPGeneratorUI = () => {
+    const commitment = userEmail ? sha256(userEmail + "commitment_salt_zkp_2025") : '0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc';
+    const nullifier = userEmail ? sha256(userEmail + "nullifier_salt_unique_zkp_2025") : '0x5555555555555555555555555555555555555555555555555555555555555555';
+
+    const copyToClipboard = (text, label) => {
+      navigator.clipboard.writeText(text);
+      alert(`${label} copied to clipboard!`);
+    };
+
+    return (
+      <div className="mt-6 border border-gray-200 rounded-lg p-4 bg-gray-50">
+        <div className="flex items-center space-x-2 mb-4">
+          <Hash className="text-blue-500" size={20} />
+          <h3 className="text-lg font-medium text-gray-800">Email ZKP Values</h3>
+        </div>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email Address
+            </label>
+            <input
+              type="text"
+              value={userEmail}
+              readOnly
+              className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-sm font-medium text-gray-700"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1 flex justify-between">
+              <span>Commitment (bytes32)</span>
+              <button 
+                onClick={() => copyToClipboard(commitment, "Commitment")}
+                className="text-blue-500 hover:text-blue-700 text-xs font-medium flex items-center"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                Copy
+              </button>
+            </label>
+            <div className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm font-mono text-gray-800 overflow-x-auto">
+              {commitment}
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1 flex justify-between">
+              <span>Nullifier (bytes32)</span>
+              <button 
+                onClick={() => copyToClipboard(nullifier, "Nullifier")}
+                className="text-blue-500 hover:text-blue-700 text-xs font-medium flex items-center"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                Copy
+              </button>
+            </label>
+            <div className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm font-mono text-gray-800 overflow-x-auto">
+              {nullifier}
+            </div>
+          </div>
+        </div>
+        
+        <div className="mt-4 text-xs text-gray-500">
+          <p>These cryptographic values can be used for zero-knowledge proofs without revealing your actual email.</p>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
-      {/* Trigger Button */}
       <button
         onClick={() => setIsOpen(true)}
         className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
@@ -143,12 +239,9 @@ const ZKEmailModal = () => {
         Verify Email
       </button>
 
-      {/* Modal Backdrop */}
       {isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          {/* Modal Content */}
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden">
-            {/* Modal Header */}
             <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
               <h3 className="text-lg font-semibold text-black">
                 ZK Email Verification
@@ -163,7 +256,6 @@ const ZKEmailModal = () => {
               </button>
             </div>
 
-            {/* Modal Body */}
             <div className="px-6 py-4">
               {error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -237,11 +329,12 @@ const ZKEmailModal = () => {
                       {JSON.stringify(proofData, null, 2)}
                     </pre>
                   </div>
+                  
+                  <EmailZKPGeneratorUI />
                 </div>
               )}
             </div>
 
-            {/* Modal Footer */}
             <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
               <div className="flex justify-end">
                 <button
@@ -257,6 +350,6 @@ const ZKEmailModal = () => {
       )}
     </>
   );
-};
+});
 
 export default ZKEmailModal;

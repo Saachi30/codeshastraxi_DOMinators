@@ -3,7 +3,7 @@ import { ethers } from 'ethers';
 import { Unplug, SendHorizontal, MessageCircle } from 'lucide-react';
 import abi from '../abi.json';
 
-const MusicRightsChatbot = () => {
+const ZKVoteChatbot = () => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isConnected, setIsConnected] = useState(false);
@@ -42,7 +42,7 @@ const MusicRightsChatbot = () => {
       const address = await signer.getAddress();
       setWalletAddress(address);
       setIsConnected(true);
-      addMessage("Wallet connected successfully! Hi I am Sarang, How may I help you?", true);
+      addMessage("Wallet connected successfully! Hi I am Sarang, How may I help you with the ZKVote platform?", true);
     } catch (error) {
       addMessage("Failed to connect wallet: " + error.message, true);
     }
@@ -59,15 +59,15 @@ const MusicRightsChatbot = () => {
         body: JSON.stringify({
           contents: [{
             parts: [{
-              text: `You are an AI assistant for a blockchain voting platform.
+              text: `You are an AI assistant for a ZKVote blockchain voting platform.
                      Parse this user request and respond with ONLY a JSON object containing 'function' and 'parameters'.
                      DO NOT include any markdown formatting or additional text.
                      
-                     Available functions: 
+                     Available view functions (read-only): 
                      getTopicDetails, getDisputeDetails, getNFTDetails, getVoterDetails, 
                      topicCount, disputeCreditCost, disputePeriod, owner, name, symbol,
                      getApproved, isApprovedForAll, tokenURI, balanceOf, ownerOf,
-                     supportsInterface, getDisputeStatus, getValidatorStatus.
+                     supportsInterface, disputes, validators, getDisputeStatus, getValidatorStatus.
                      
                      User request: "${userInput}"
                      
@@ -75,7 +75,13 @@ const MusicRightsChatbot = () => {
                      {"function":"chat","response":"your helpful response"}
                      
                      For functions, respond with format:
-                     {"function":"getTopicDetails","parameters":{"topicId":"1"}}`
+                     {"function":"getTopicDetails","parameters":{"topicId":"1"}}
+                     
+                     For disputes mapping query:
+                     {"function":"getDisputeStatus","parameters":{"disputeId":"1"}}
+                     
+                     For validators mapping query:
+                     {"function":"getValidatorStatus","parameters":{"validator":"0x..."}}`
             }]
           }],
           generationConfig: {
@@ -140,40 +146,40 @@ const MusicRightsChatbot = () => {
       let result;
       switch (action.function) {
         case 'getTopicDetails':
-          result = await contract.getTopicDetails(action.params.topicId);
-          addMessage(`📋 Topic #${action.params.topicId} Details:
+          result = await contract.getTopicDetails(action.parameters.topicId);
+          addMessage(`📋 Topic #${action.parameters.topicId} Details:
 • Name: ${result[0]}
 • Description: ${result[1]}
 • Choices: ${result[2].join(', ')}
-• Method: ${result[3]}
+• Method: ${result[3] === 0 ? 'Quadratic Voting' : result[3] === 1 ? 'Ranked Choice' : 'Simple Majority'}
 • Start Time: ${new Date(result[4] * 1000).toLocaleString()}
 • End Time: ${new Date(result[5] * 1000).toLocaleString()}
-• Location: ${result[6]}
+• Location Hash: ${result[6]}
 • Min Voting Power: ${result[7]}
 • Status: ${result[8] ? '✅ Open' : '❌ Closed'}
 • Vote Counts: ${result[9].join(', ')}`, true);
           break;
 
         case 'getDisputeDetails':
-          result = await contract.getDisputeDetails(action.params.disputeId);
-          addMessage(`⚖️ Dispute #${action.params.disputeId} Details:
+          result = await contract.getDisputeDetails(action.parameters.disputeId);
+          addMessage(`⚖️ Dispute #${action.parameters.disputeId} Details:
 • Topic ID: ${result[0]}
 • Reason: ${result[1]}
-• Status: ${result[2]}
+• Status: ${getDisputeStatusText(result[2])}
 • Timestamp: ${new Date(result[3] * 1000).toLocaleString()}
 • Resolution: ${result[4] || 'None'}`, true);
           break;
 
         case 'getNFTDetails':
-          result = await contract.getNFTDetails(action.params.tokenId);
-          addMessage(`🖼️ NFT #${action.params.tokenId} Details:
-• Owner: ${result[0].slice(0, 6)}...${result[0].slice(-4)}
+          result = await contract.getNFTDetails(action.parameters.tokenId);
+          addMessage(`🖼️ NFT #${action.parameters.tokenId} Details:
+• Owner: ${formatAddress(result[0])}
 • Token URI: ${result[1]}`, true);
           break;
 
         case 'getVoterDetails':
-          result = await contract.getVoterDetails(action.params.voterCommitment);
-          addMessage(`👤 Voter Details:
+          result = await contract.getVoterDetails(action.parameters.voterCommitment);
+          addMessage(`👤 Voter Details for commitment ${action.parameters.voterCommitment}:
 • Dispute Credits: ${result[0]}
 • Voting Power: ${result[1]}
 • Remaining Credits: ${result[2]}`, true);
@@ -181,7 +187,7 @@ const MusicRightsChatbot = () => {
 
         case 'topicCount':
           result = await contract.topicCount();
-          addMessage(`📊 Total Topics: ${result}`, true);
+          addMessage(`📊 Total Topics Created: ${result}`, true);
           break;
 
         case 'disputeCreditCost':
@@ -196,7 +202,7 @@ const MusicRightsChatbot = () => {
 
         case 'owner':
           result = await contract.owner();
-          addMessage(`👑 Contract Owner: ${result.slice(0, 6)}...${result.slice(-4)}`, true);
+          addMessage(`👑 Contract Owner: ${formatAddress(result)}`, true);
           break;
 
         case 'name':
@@ -210,57 +216,72 @@ const MusicRightsChatbot = () => {
           break;
 
         case 'getApproved':
-          result = await contract.getApproved(action.params.tokenId);
-          addMessage(`✅ Approved Address for NFT #${action.params.tokenId}: ${result.slice(0, 6)}...${result.slice(-4)}`, true);
+          result = await contract.getApproved(action.parameters.tokenId);
+          addMessage(`✅ Approved Address for NFT #${action.parameters.tokenId}: ${formatAddress(result)}`, true);
           break;
 
         case 'isApprovedForAll':
-          result = await contract.isApprovedForAll(action.params.owner, action.params.operator);
-          addMessage(`🔍 Approval Status: ${result ? '✅ Approved' : '❌ Not Approved'} for operator ${action.params.operator.slice(0, 6)}...`, true);
+          result = await contract.isApprovedForAll(action.parameters.owner, action.parameters.operator);
+          addMessage(`🔍 Approval Status: ${result ? '✅ Approved' : '❌ Not Approved'} for operator ${formatAddress(action.parameters.operator)}`, true);
           break;
 
         case 'tokenURI':
-          result = await contract.tokenURI(action.params.tokenId);
-          addMessage(`🌐 Token URI for NFT #${action.params.tokenId}: ${result}`, true);
+          result = await contract.tokenURI(action.parameters.tokenId);
+          addMessage(`🌐 Token URI for NFT #${action.parameters.tokenId}: ${result}`, true);
           break;
 
         case 'balanceOf':
-          result = await contract.balanceOf(action.params.owner);
-          addMessage(`💰 NFT Balance for ${action.params.owner.slice(0, 6)}...: ${result}`, true);
+          result = await contract.balanceOf(action.parameters.owner);
+          addMessage(`💰 NFT Balance for ${formatAddress(action.parameters.owner)}: ${result}`, true);
           break;
 
         case 'ownerOf':
-          result = await contract.ownerOf(action.params.tokenId);
-          addMessage(`👤 Owner of NFT #${action.params.tokenId}: ${result.slice(0, 6)}...${result.slice(-4)}`, true);
+          result = await contract.ownerOf(action.parameters.tokenId);
+          addMessage(`👤 Owner of NFT #${action.parameters.tokenId}: ${formatAddress(result)}`, true);
           break;
 
         case 'supportsInterface':
-          result = await contract.supportsInterface(action.params.interfaceId);
-          addMessage(`🔄 Interface Support: ${result ? '✅ Supported' : '❌ Not Supported'} for interface ${action.params.interfaceId}`, true);
+          result = await contract.supportsInterface(action.parameters.interfaceId);
+          addMessage(`🔄 Interface Support: ${result ? '✅ Supported' : '❌ Not Supported'} for interface ${action.parameters.interfaceId}`, true);
           break;
 
         case 'getDisputeStatus':
-          const dispute = await contract.disputes(action.params.disputeId);
-          addMessage(`⚖️ Dispute #${action.params.disputeId} Status:
+          const dispute = await contract.disputes(action.parameters.disputeId);
+          addMessage(`⚖️ Dispute #${action.parameters.disputeId} Status:
 • Topic ID: ${dispute.topicId}
-• Reporter: ${dispute.reporter.slice(0, 6)}...
-• Status: ${dispute.status}
+• Reporter: ${formatAddress(dispute.reporter)}
+• Status: ${getDisputeStatusText(dispute.status)}
 • Timestamp: ${new Date(dispute.timestamp * 1000).toLocaleString()}
 • Resolution: ${dispute.resolution || 'None'}`, true);
           break;
 
         case 'getValidatorStatus':
-          result = await contract.validators(action.params.validator);
-          addMessage(`🛡️ Validator Status for ${action.params.validator.slice(0, 6)}...: ${result ? '✅ Active' : '❌ Inactive'}`, true);
+          result = await contract.validators(action.parameters.validator);
+          addMessage(`🛡️ Validator Status for ${formatAddress(action.parameters.validator)}: ${result ? '✅ Active' : '❌ Inactive'}`, true);
           break;
 
         default:
           throw new Error('Unknown function');
       }
     } catch (error) {
-      addMessage(`❌ Error: ${error.message}`, true);
+      addMessage(`❌ Error executing ${action.function}: ${error.message}`, true);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Helper functions
+  const formatAddress = (address) => {
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  const getDisputeStatusText = (status) => {
+    switch(status) {
+      case 0: return 'Pending';
+      case 1: return 'Accepted';
+      case 2: return 'Rejected';
+      case 3: return 'Resolved';
+      default: return 'Unknown';
     }
   };
 
@@ -272,7 +293,7 @@ const MusicRightsChatbot = () => {
     setInput('');
 
     if (!isConnected) {
-      addMessage("🔒 Please connect your wallet first!", true);
+      addMessage("🔒 Please connect your wallet first to interact with the contract!", true);
       return;
     }
 
@@ -280,57 +301,6 @@ const MusicRightsChatbot = () => {
     if (action) {
       await executeTransaction(action);
     }
-  };
-
-  const renderModal = () => {
-    if (!showModal || !pendingAction) return null;
-
-    const functionName = pendingAction.function
-      .replace(/([A-Z])/g, ' $1')
-      .replace(/^./, str => str.toUpperCase());
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white p-6 rounded-lg max-w-md w-full">
-          <h2 className="text-xl font-bold mb-4">Confirm Action</h2>
-          <div className="mb-6">
-            <div className="bg-blue-50 p-3 rounded-lg mb-4">
-              <h3 className="text-lg font-semibold text-blue-700 mb-2">
-                {functionName}
-              </h3>
-              <div className="space-y-2">
-                {Object.entries(pendingAction.params).map(([key, value], index) => (
-                  <div key={index} className="grid grid-cols-2 gap-2">
-                    <span className="text-sm font-medium text-gray-600">{key}:</span>
-                    <span className="text-sm text-gray-800 break-words">
-                      {typeof value === 'string' && value.startsWith('0x') 
-                        ? `${value.slice(0, 6)}...${value.slice(-4)}`
-                        : value}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="flex justify-end gap-2">
-            <button
-              onClick={() => setShowModal(false)}
-              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-              disabled={isLoading}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => executeTransaction(pendingAction)}
-              className="px-4 py-2 bg-blue-500 text-white hover:bg-blue-600 rounded-lg transition-colors disabled:opacity-50"
-              disabled={isLoading}
-            >
-              {isLoading ? 'Processing...' : 'Confirm'}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
   };
 
   return (
@@ -348,7 +318,7 @@ const MusicRightsChatbot = () => {
           <div className="flex justify-between items-center p-4 border-b bg-blue-500 text-white rounded-t-lg">
             <div>
               <h1 className="text-xl font-bold">ZKVote Assistant</h1>
-              <p className="text-xs opacity-80">Ask about voting topics or disputes</p>
+              <p className="text-xs opacity-80">Ask about voting topics, disputes, or NFTs</p>
             </div>
             {!isConnected ? (
               <button
@@ -361,7 +331,7 @@ const MusicRightsChatbot = () => {
               </button>
             ) : (
               <span className="text-xs bg-blue-600 px-3 py-1 rounded-lg">
-                {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                {formatAddress(walletAddress)}
               </span>
             )}
           </div>
@@ -403,7 +373,7 @@ const MusicRightsChatbot = () => {
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask about topics, disputes, or voting..."
+                placeholder="Ask about topics, disputes, NFTs, or voting..."
                 className="flex-1 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-70"
                 disabled={isLoading}
               />
@@ -417,12 +387,10 @@ const MusicRightsChatbot = () => {
               </button>
             </div>
           </form>
-
-          {renderModal()}
         </div>
       )}
     </div>
   );
 };
 
-export default MusicRightsChatbot;
+export default ZKVoteChatbot;

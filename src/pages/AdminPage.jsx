@@ -1,7 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
-import abi from '../abi.json'; // Assuming you have the ABI in a separate file
+import abi from '../abi.json'; 
+import EmailZKPGenerator from './BulkZKP';
+import ZKEmailModal from './zkproof';
 const AdminPage = () => {
   // Connect to Ethereum
   const [provider, setProvider] = useState(null);
@@ -389,6 +391,8 @@ const AdminPage = () => {
                             </div>
                           </div>
                         </div>
+                        <ZKEmailModal/>
+                        <EmailZKPGenerator/>
                       </div>
                     ))}
                   </div>
