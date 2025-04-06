@@ -333,6 +333,7 @@ const Header = () => {
   };
 
   return (
+<<<<<<< Updated upstream
     <AnimatePresence>
       {!isVisible && (
         <motion.nav
@@ -383,6 +384,42 @@ const Header = () => {
         </motion.nav>
       )}
     </AnimatePresence>
+=======
+    <header className="bg-blue-600 text-white p-4 shadow-md">
+      <div className="container mx-auto flex justify-between items-center">
+        <Link to="/" className="text-2xl font-bold">SecureVote</Link>
+        
+        <nav>
+          <ul className="flex space-x-6">
+            <li>
+              <Link to="/" className="hover:text-blue-200">Home</Link>
+            </li>
+            <li>
+              <Link to="/dashboard" className="hover:text-blue-200">My Dashboard</Link>
+            </li>
+            <li>
+              <Link to="/create-topic" className="hover:text-blue-200">Create Voting</Link>
+            </li>
+            <li>
+              <Link to="/vote" className="hover:text-blue-200">Vote</Link>
+            </li>
+            <li>
+              <Link to="/dispute" className="hover:text-blue-200">Dispute</Link>
+            </li>
+            <li>
+              <Link to="/nft" className="hover:text-blue-200">Certifications</Link>
+            </li>
+            <li>
+              <Link to="/admin-page" className="hover:text-blue-200">Admin</Link>
+            </li>
+            <li>
+              <Link to="/auth" className="hover:text-blue-200">Login</Link>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+>>>>>>> Stashed changes
   );
 };
 

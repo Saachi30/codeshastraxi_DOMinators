@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import ZKEmailModal from './zkproof';
 import { Link } from 'react-router-dom';
+import { getFirestore, 
+  collection, 
+  query, 
+  where, 
+  getDocs  } from 'firebase/firestore';
 
 // Define the contract ABI and address
 const contractAddress = '0x12b4166e7C81dF1b47722746bD511Fca44dcb7EC';
@@ -20,6 +25,7 @@ const NFTViewer = ({ commitment, nullifier, onClose, onMintNFT }) => {
   const [minting, setMinting] = useState(false);
   const [minted, setMinted] = useState(false);
   const [nftDetails, setNftDetails] = useState(null);
+  
 
   const handleMintNFT = async () => {
     if (!ipfsHash) {
@@ -150,6 +156,11 @@ const ZKVote = () => {
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState(''); // 'success' or 'error'
   const [showNFTModal, setShowNFTModal] = useState(false);
+  const [ipData, setIpData] = useState(null);
+const [ipLoading, setIpLoading] = useState(false);
+const [ipError, setIpError] = useState(null);
+const [electionDetails, setElectionDetails] = useState(null);
+const [locationVerified, setLocationVerified] = useState(false);
   
   // Connect wallet
   const connectWallet = async () => {
@@ -179,36 +190,138 @@ const ZKVote = () => {
       setMessageType('error');
     }
   };
+
+  // Fetch user's IP geolocation data
+const fetchIPData = async () => {
+  setIpLoading(true);
+  setIpError(null);
+  
+  try {
+    const ACCESS_KEY = '49c7d211f478d6ce3b6a1bc48952f80c'; // Your API key
+    const url = `https://api.ipstack.com/check?access_key=${ACCESS_KEY}`;
+    
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (data.error) {
+      throw new Error(data.error.info || 'Failed to fetch IP data');
+    }
+    
+    setIpData(data);
+    
+    // Check if election details are available and verify location
+    if (electionDetails) {
+      verifyLocation(data, electionDetails);
+    }
+  } catch (err) {
+    setIpError(err.message || 'Something went wrong with location verification');
+    console.error(err);
+  } finally {
+    setIpLoading(false);
+  }
+};
+
+// Fetch election details from Firebase
+const fetchElectionDetails = async (id) => {
+  try {
+    const db = getFirestore();
+    // Query elections collection where topicId matches
+    const querySnapshot = await getDocs(
+      query(collection(db, "elections"), where("topicId", "==", id.toString()))
+    );
+    
+    if (!querySnapshot.empty) {
+      // Get the first matching document
+      const docSnapshot = querySnapshot.docs[0];
+      const electionData = docSnapshot.data();
+      
+      console.log("Found election:", electionData);
+      setElectionDetails(electionData);
+      return electionData;
+    } else {
+      console.log("No election found with topicId:", id);
+      setElectionDetails(null);
+      return null;
+    }
+  } catch (error) {
+    console.error("Error fetching election:", error);
+    setElectionDetails(null);
+    return null;
+  }
+};
+// Verify if user's location matches the election location
+const verifyLocation = (ipData, electionData) => {
+  if (!ipData || !electionData) return;
+
+  // Normalize both values
+  const normalize = (value) => {
+    if (!value) return '';
+    return String(value).trim().replace(/\s+/g, '');
+  };
+
+  const userZip = normalize(ipData.zip);
+  const electionPincode = normalize(electionData.pincode);
+
+  console.log('Verification Details:', {
+    rawZip: ipData.zip,
+    rawPincode: electionData.pincode,
+    normalizedZip: userZip,
+    normalizedPincode: electionPincode,
+    match: userZip === electionPincode
+  });
+
+  if (userZip === electionPincode) {
+    setLocationVerified(true);
+    setMessage("Location verified successfully!");
+    setMessageType("success");
+  } else {
+    setLocationVerified(false);
+    setMessage(`Location verification failed. Your ZIP code (${userZip}) doesn't match the required pincode (${electionPincode}).`);
+    setMessageType("error");
+  }
+};
   
   // Fetch topic details
-  const fetchTopicDetails = async () => {
-    if (!contract || !topicId) return;
+  // Fetch topic details
+const fetchTopicDetails = async () => {
+  if (!contract || !topicId) return;
+  
+  try {
+    setLoading(true);
     
-    try {
-      setLoading(true);
-      const details = await contract.getTopicDetails(topicId);
-      setTopicDetails({
-        name: details.name,
-        description: details.description,
-        choices: details.choices,
-        method: details.method,
-        startTime: new Date(details.startTime.toNumber() * 1000).toLocaleString(),
-        endTime: new Date(details.endTime.toNumber() * 1000).toLocaleString(),
-        location: details.location,
-        minVotingPower: details.minVotingPower.toString(),
-        isVotingOpen: details.isVotingOpen,
-        voteCounts: details.voteCounts.map(count => count.toString())
-      });
-      setLoading(false);
-      setMessage('Topic details loaded!');
-      setMessageType('success');
-    } catch (error) {
-      console.error(error);
-      setLoading(false);
-      setMessage('Error fetching topic details: ' + error.message);
-      setMessageType('error');
+    // 1. Fetch blockchain topic details
+    const details = await contract.getTopicDetails(topicId);
+    setTopicDetails({
+      name: details.name,
+      description: details.description,
+      choices: details.choices,
+      method: details.method,
+      startTime: new Date(details.startTime.toNumber() * 1000).toLocaleString(),
+      endTime: new Date(details.endTime.toNumber() * 1000).toLocaleString(),
+      location: details.location,
+      minVotingPower: details.minVotingPower.toString(),
+      isVotingOpen: details.isVotingOpen,
+      voteCounts: details.voteCounts.map(count => count.toString())
+    });
+    
+    // 2. Fetch Firebase election details
+    await fetchElectionDetails(topicId);
+    
+    // 3. Fetch IP location data if not already fetched
+    if (!ipData) {
+      fetchIPData();
     }
-  };
+    
+    setLoading(false);
+    setMessage('Topic details loaded!');
+    setMessageType('success');
+  } catch (error) {
+    console.error(error);
+    setLoading(false);
+    setMessage('Error fetching topic details: ' + error.message);
+    setMessageType('error');
+  }
+};
   
   // Helper function to properly format bytes32 values
   const formatBytes32Value = (value) => {
@@ -256,68 +369,76 @@ const ZKVote = () => {
   };
   
   // Submit vote
-  const submitVote = async () => {
-    if (!contract || !topicId || !nullifier || !commitment || !topicDetails) {
-      setMessage('Please fill all required fields');
-      setMessageType('error');
-      return;
+  // Submit vote
+const submitVote = async () => {
+  if (!contract || !topicId || !nullifier || !commitment || !topicDetails) {
+    setMessage('Please fill all required fields');
+    setMessageType('error');
+    return;
+  }
+  
+  if (!selectedChoices.length) {
+    setMessage('Please select at least one choice');
+    setMessageType('error');
+    return;
+  }
+  
+  // Check location verification
+  if (!locationVerified) {
+    setMessage('Your location does not match the required location for this election');
+    setMessageType('error');
+    return;
+  }
+  
+  try {
+    setLoading(true);
+    
+    // Format nullifier and commitment to proper bytes32 values
+    const nullifierBytes32 = formatBytes32Value(nullifier);
+    const commitmentBytes32 = formatBytes32Value(commitment);
+    
+    // Prepare voteData based on voting method
+    // 0: Single choice, 1: Multiple choice, 2: Ranked choice, 3: Quadratic
+    let voteData = [];
+    
+    if (topicDetails.method === 0) {
+      // Single choice - just the index of the selected choice
+      voteData = [parseInt(selectedChoices[0])];
+    } else if (topicDetails.method === 1) {
+      // Multiple choice - array of selected indices
+      voteData = selectedChoices.map(choice => parseInt(choice));
+    } else if (topicDetails.method === 2) {
+      // Ranked choice - array of [index, rank] pairs
+      voteData = selectedChoices.map((choice, index) => [parseInt(choice), index + 1]).flat();
+    } else if (topicDetails.method === 3) {
+      // Quadratic voting - array of [index, votes] pairs
+      voteData = selectedChoices.map(choice => [parseInt(choice), 1]).flat();
     }
     
-    if (!selectedChoices.length) {
-      setMessage('Please select at least one choice');
-      setMessageType('error');
-      return;
-    }
+    // Call vote function
+    const tx = await contract.vote(
+      topicId,
+      nullifierBytes32,
+      commitmentBytes32,
+      locationProof || '',
+      voteData
+    );
     
-    try {
-      setLoading(true);
-      
-      // Format nullifier and commitment to proper bytes32 values
-      const nullifierBytes32 = formatBytes32Value(nullifier);
-      const commitmentBytes32 = formatBytes32Value(commitment);
-      
-      // Prepare voteData based on voting method
-      // 0: Single choice, 1: Multiple choice, 2: Ranked choice, 3: Quadratic
-      let voteData = [];
-      
-      if (topicDetails.method === 0) {
-        // Single choice - just the index of the selected choice
-        voteData = [parseInt(selectedChoices[0])];
-      } else if (topicDetails.method === 1) {
-        // Multiple choice - array of selected indices
-        voteData = selectedChoices.map(choice => parseInt(choice));
-      } else if (topicDetails.method === 2) {
-        // Ranked choice - array of [index, rank] pairs
-        voteData = selectedChoices.map((choice, index) => [parseInt(choice), index + 1]).flat();
-      } else if (topicDetails.method === 3) {
-        // Quadratic voting - array of [index, votes] pairs
-        voteData = selectedChoices.map(choice => [parseInt(choice), 1]).flat();
-      }
-      
-      // Call vote function
-      const tx = await contract.vote(
-        topicId,
-        nullifierBytes32,
-        commitmentBytes32,
-        locationProof || '',
-        voteData
-      );
-      
-      await tx.wait();
-      
-      setLoading(false);
-      setMessage('Vote submitted successfully!');
-      setMessageType('success');
-      
-      // Show NFT modal after successful vote submission
-      setShowNFTModal(true);
-    } catch (error) {
-      console.error(error);
-      setLoading(false);
-      setMessage('Error submitting vote: ' + error.message);
-      setMessageType('error');
-    }
-  };
+    await tx.wait();
+    
+    setLoading(false);
+    setMessage('Vote submitted successfully!');
+    setMessageType('success');
+    
+    // Show NFT modal after successful vote submission
+    setShowNFTModal(true);
+  } catch (error) {
+    console.error(error);
+    setLoading(false);
+    setMessage('Error submitting vote: ' + error.message);
+    setMessageType('error');
+  }
+};
   
   // Handle choice selection
   const handleChoiceSelection = (index) => {
@@ -494,6 +615,58 @@ const ZKVote = () => {
                 
                 {/* Voting Form */}
                 <div className="bg-gray-700 rounded-xl border border-gray-600 shadow-sm p-6">
+                <div className="bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-700 mt-4">
+  <div className="flex items-center justify-between">
+    <p className="text-sm font-medium text-gray-400">Location Verification</p>
+    {ipLoading ? (
+      <span className="flex items-center">
+        <svg className="animate-spin h-5 w-5 text-purple-500 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Verifying location...
+      </span>
+    ) : ipData ? (
+      <div className="flex items-center">
+        {locationVerified ? (
+          <>
+            <span className="inline-block h-2.5 w-2.5 rounded-full mr-2 bg-green-500"></span>
+            <span className="font-semibold text-green-400">Verified</span>
+          </>
+        ) : (
+          <>
+            <span className="inline-block h-2.5 w-2.5 rounded-full mr-2 bg-red-500"></span>
+            <span className="font-semibold text-red-400">Not Verified</span>
+          </>
+        )}
+      </div>
+    ) : (
+      <button
+        onClick={fetchIPData}
+        className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm"
+      >
+        Verify My Location
+      </button>
+    )}
+  </div>
+  
+  {ipData && electionDetails && (
+  <div className="bg-yellow-900 bg-opacity-20 p-4 rounded-lg mb-4">
+    <h4 className="font-bold text-white mb-2">Verification Debug</h4>
+    <div className="text-xs text-gray-300">
+      <p>Raw ZIP: {JSON.stringify(ipData.zip)} (Type: {typeof ipData.zip})</p>
+      <p>Raw Pincode: {JSON.stringify(electionDetails.pincode)} (Type: {typeof electionDetails.pincode})</p>
+      <p>Normalized ZIP: {String(ipData.zip).trim().replace(/\s+/g, '')}</p>
+      <p>Normalized Pincode: {String(electionDetails.pincode).trim().replace(/\s+/g, '')}</p>
+      <p>Match: {String(ipData.zip).trim().replace(/\s+/g, '') === String(electionDetails.pincode).trim().replace(/\s+/g, '') ? '✅' : '❌'}</p>
+    </div>
+  </div>
+)}
+  
+  {ipError && (
+    <p className="mt-2 text-xs text-red-400">{ipError}</p>
+  )}
+</div>
                   <h3 className="text-lg font-semibold text-white mb-4">Your Vote Information</h3>
                   
                   <div className="space-y-6">
@@ -550,20 +723,20 @@ const ZKVote = () => {
                     </div>
                     <ZKEmailModal/>
                     <button
-                      onClick={submitVote}
-                      disabled={!connected || loading || !topicDetails.isVotingOpen || !nullifier || !commitment || selectedChoices.length === 0}
-                      className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all disabled:from-gray-600 disabled:to-gray-600 font-medium text-lg shadow-md"
-                    >
-                      {loading ? (
-                        <span className="flex items-center justify-center">
-                          <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          Submitting Vote...
-                        </span>
-                      ) : 'Submit Vote'}
-                    </button>
+  onClick={submitVote}
+  disabled={!connected || loading || !topicDetails.isVotingOpen || !nullifier || !commitment || selectedChoices.length === 0 || !locationVerified}
+  className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all disabled:from-gray-600 disabled:to-gray-600 font-medium text-lg shadow-md"
+>
+  {loading ? (
+    <span className="flex items-center justify-center">
+      <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      Submitting Vote...
+    </span>
+  ) : !locationVerified ? 'Location Verification Required' : 'Submit Vote'}
+</button>
                   </div>
                 </div>
               </div>
