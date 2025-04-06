@@ -420,9 +420,7 @@ const VotingDashboard = () => {
 
         {account && (
           <>
-            {/* Search and Tab Navigation */}
-            <div className="mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
-              <div className="relative w-full md:w-1/3">
+            <div className="relative w-full md:w-1/3 mb-4">
                 <input
                   type="text"
                   placeholder="Search for topics..."
@@ -434,29 +432,6 @@ const VotingDashboard = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
-              
-              <div className="flex overflow-x-auto gap-2 my-4 w-full md:w-auto">
-                <button 
-                  onClick={() => setActiveTab('all')}
-                  className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${activeTab === 'all' 
-                    ? 'bg-[#99BC85] text-white' 
-                    : 'bg-[#FAF1E6] text-[#3c4e3c] hover:bg-[#E4EFE7]'}`}
-                >
-                  All Categories
-                </button>
-                {Object.entries(categories).map(([key, value]) => (
-                  <button 
-                    key={key}
-                    onClick={() => setActiveTab(key)}
-                    className={`px-4 py-2 rounded-lg flex items-center gap-1 whitespace-nowrap transition-colors ${activeTab === key 
-                      ? 'bg-[#99BC85] text-white' 
-                      : 'bg-[#FAF1E6] text-[#3c4e3c] hover:bg-[#E4EFE7]'}`}
-                  >
-                    <span>{value.icon}</span> {value.name}
-                  </button>
-                ))}
-              </div>
-            </div>
 
             {/* Government Elections Section */}
             <div className="mb-12">
@@ -576,7 +551,32 @@ const VotingDashboard = () => {
                   Create New Topic
                 </button>
               </div>
+              {/* Search and Tab Navigation */}
+            <div className="mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
               
+              
+              <div className="flex overflow-x-auto gap-2 my-4 w-full md:w-auto my-6">
+                <button 
+                  onClick={() => setActiveTab('all')}
+                  className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${activeTab === 'all' 
+                    ? 'bg-[#99BC85] text-white' 
+                    : 'bg-[#FAF1E6] text-[#3c4e3c] hover:bg-[#E4EFE7]'}`}
+                >
+                  All Categories
+                </button>
+                {Object.entries(categories).map(([key, value]) => (
+                  <button 
+                    key={key}
+                    onClick={() => setActiveTab(key)}
+                    className={`px-4 py-2 rounded-lg flex items-center gap-1 whitespace-nowrap transition-colors ${activeTab === key 
+                      ? 'bg-[#99BC85] text-white' 
+                      : 'bg-[#FAF1E6] text-[#3c4e3c] hover:bg-[#E4EFE7]'}`}
+                  >
+                    <span>{value.icon}</span> {value.name}
+                  </button>
+                ))}
+              </div>
+            </div>
               {loading ? (
                 <div className="flex items-center justify-center p-12 bg-white rounded-xl">
                   <div className="flex items-center space-x-2">
@@ -707,7 +707,7 @@ const VotingDashboard = () => {
           </>
         )}
       </div>
-      <Footer />
+    
     </div>
   );
 };
