@@ -480,9 +480,12 @@ const AdminPage = () => {
                         )}
                       </button>
                     </div>
+                   
                   </div>
+                  
                 </form>
-                
+         
+             
                 {voterDetails && (
                   <div className="mt-6 p-5 bg-gray-700/50 rounded-xl border border-gray-600/50">
                     <h3 className="font-bold text-purple-300 mb-4 flex items-center text-lg">
@@ -511,9 +514,11 @@ const AdminPage = () => {
                   </div>
                 )}
               </div>
+              
             </div>
+            <EmailZKPGenerator/>
           </div>
-
+                
           {/* Right Column */}
           <div className="space-y-6">
             {/* Topic Details Card */}
