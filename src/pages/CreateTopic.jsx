@@ -4,7 +4,7 @@ import { getFirestore, doc, setDoc } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import Papa from 'papaparse';
 import abi from '../abi.json';
-
+import { sendElectionInvitations } from '../components/Email';
 const CreateTopic = () => {
   const fileInputRef = useRef(null);
   
@@ -128,13 +128,42 @@ const CreateTopic = () => {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
   };
   
+  // const saveToFirebase = async (topicId) => {
+  //   try {
+  //     const db = getFirestore();
+  //     const uniqueCode = generateUniqueCode();
+  //     const electionId = uuidv4();
+      
+  //     await setDoc(doc(db, "elections", electionId), {
+  //       topicId,
+  //       name: formData.name,
+  //       description: formData.description,
+  //       pincode: formData.pincode,
+  //       type: formData.type,
+  //       creatorEmail: formData.creatorEmail,
+  //       participants: formData.allowAllUsers ? [] : formData.participants,
+  //       allowAllUsers: formData.allowAllUsers,
+  //       uniqueCode,
+  //       txHash,
+  //       createdAt: new Date().toISOString(),
+  //       duration: Number(formData.duration),
+  //       votingMethod: Number(formData.votingMethod)
+  //     });
+      
+  //     return uniqueCode;
+  //   } catch (error) {
+  //     console.error("Firebase error:", error);
+  //     throw new Error("Failed to save election data to Firebase");
+  //   }
+  // };
+  
   const saveToFirebase = async (topicId) => {
     try {
       const db = getFirestore();
       const uniqueCode = generateUniqueCode();
       const electionId = uuidv4();
       
-      await setDoc(doc(db, "elections", electionId), {
+      const electionData = {
         topicId,
         name: formData.name,
         description: formData.description,
@@ -148,15 +177,16 @@ const CreateTopic = () => {
         createdAt: new Date().toISOString(),
         duration: Number(formData.duration),
         votingMethod: Number(formData.votingMethod)
-      });
+      };
       
-      return uniqueCode;
+      await setDoc(doc(db, "elections", electionId), electionData);
+      
+      return { uniqueCode, electionData };
     } catch (error) {
       console.error("Firebase error:", error);
       throw new Error("Failed to save election data to Firebase");
     }
   };
-  
   const createTopic = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -238,9 +268,17 @@ const CreateTopic = () => {
       const topicId = topicCreatedEvent ? topicCreatedEvent.args.topicId.toString() : tx.hash;
       
       // Save to Firebase
-      const uniqueCode = await saveToFirebase(topicId);
+      const { uniqueCode, electionData } = await saveToFirebase(topicId);
       
-      setIsSuccess(true);
+      // Send email invitations if there are specific participants
+    if (!formData.allowAllUsers && formData.participants.length > 0) {
+      await sendElectionInvitations({
+        ...electionData,
+        uniqueCode
+      });
+    }
+    
+    setIsSuccess(true);
       
       // Reset form
       setFormData({
