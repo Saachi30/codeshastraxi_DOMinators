@@ -33,6 +33,9 @@ import LoadingScreen from './components/LoadingScreen';
 import HomePage from './pages/HOME.JSX';
 import Tracking from './pages/Tracking';
 import FloatingAssistantButton from './components/FloatingAssistantButton';
+import GTranslate from './components/GTranslate';
+import Header from './components/Header';
+import Footer from './components/Footer';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -132,9 +135,12 @@ function App() {
             <div className="min-h-screen bg-gradient-to-br from-blue-900 to-purple-900 text-white font-sans">
               <VoiceAssistant />
               <FloatingAssistantButton/>
+              <GTranslate />
+              <Header/>
               <Routes>
                 <Route path="/" element={<Welcome />} />
                 <Route path="/auth" element={<Authentication />} />
+                
                 <Route 
                   path="/dashboard" 
                   element={
@@ -225,7 +231,9 @@ function App() {
                 <Route path="/voiceassitantpage" element={<VoiceAssistantPage />} />
                 <Route path='tracking' element={<Tracking/>}/>
                 <Route path="*" element={<NotFound />} />
+                
               </Routes>
+              <Footer />
             </div>
           </Router>
         </VotingProvider>

@@ -197,7 +197,7 @@ const content = {
   const currentContent = content[language] || content['en'];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-300 to-indigo-300 text-gray-800 flex flex-col">
+    <div className="min-h-screen bg-[#FAF1E6] text-gray-800 flex flex-col">
       {/* Header with language selector */}
       <header className="p-4 flex justify-end">
         <div className="relative group">
@@ -229,7 +229,7 @@ const content = {
           transition={{ duration: 0.5 }}
           className="text-center mb-8"
         >
-          <h2 className="text-xl md:text-2xl font-light text-blue-600 mb-2">{currentContent.welcome}</h2>
+          <h2 className="text-xl md:text-2xl font-light text-[#7FA56D] mb-2">{currentContent.welcome}</h2>
           <h1 className="text-4xl md:text-6xl font-bold text-gray-800 mb-4">
             BharatVote
           </h1>
@@ -278,13 +278,13 @@ const content = {
         >
           <button
             onClick={() => navigate('/auth')}
-            className="px-8 py-3 bg-blue-600 cursor-pointer shadow-xl text-white rounded-lg font-medium text-lg shadow-sm hover:bg-blue-700 hover:shadow-md transition-all"
+            className="px-8 py-3 bg-[#99BC85] hover:bg-[#7FA56D] cursor-pointer shadow-xl text-white rounded-lg font-medium text-lg shadow-sm  hover:shadow-md transition-all"
           >
             {currentContent.beginBtn}
           </button>
           <button
             onClick={() => setShowInfo(true)}
-            className="px-8 py-3 bg-white cursor-pointer shadow-xl text-blue-600 rounded-lg font-medium text-lg shadow-sm hover:bg-gray-50 hover:shadow-md transition-all border border-gray-200"
+            className="px-8 py-3 bg-[#E4EFE7] cursor-pointer shadow-xl text-[#7FA56D] rounded-lg font-medium text-lg shadow-sm hover:bg-gray-50 hover:shadow-md transition-all border border-gray-200"
           >
             {currentContent.howItWorksBtn}
           </button>
