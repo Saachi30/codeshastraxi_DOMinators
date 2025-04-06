@@ -2,10 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import ZKEmailModal from './zkproof';
 import { Link } from 'react-router-dom';
-import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
-import { useParams } from 'react-router-dom';
+import { getFirestore, collection, query, where, getDocs, doc, setDoc } from 'firebase/firestore';
+import { useAuth } from '../contexts/AuthContext';
+import Confetti from 'react-confetti';
+import { motion } from 'framer-motion';
+import { FaSmile, FaMeh, FaFrown, FaCheckCircle } from 'react-icons/fa';
+import axios from 'axios';
 
-// Contract ABI (using only the upper attached ABI)
+// Contract ABI
 const contractABI = [
   {
     "inputs": [
@@ -154,34 +158,165 @@ const contractABI = [
 ];
 
 const contractAddress = '0x12b4166e7C81dF1b47722746bD511Fca44dcb7EC';
+const PINATA_API_KEY = '8c60abd9f27467cf2101';
+const PINATA_SECRET_API_KEY = 'd1f1282cb1531dcdd08f0b33e2dad886e908e878b8733571e5b9d4f36f90eae9';
 
-// NFT Viewer Component with light theme
 const NFTViewer = ({ commitment, nullifier, onClose, onMintNFT }) => {
+  const { currentUser } = useAuth();
   const [ipfsHash, setIpfsHash] = useState('');
   const [minting, setMinting] = useState(false);
   const [minted, setMinted] = useState(false);
   const [nftDetails, setNftDetails] = useState(null);
+  const [nftImage, setNftImage] = useState('');
+  const [nftName, setNftName] = useState('My Voting NFT');
+  const [nftDescription, setNftDescription] = useState('This NFT represents my anonymous vote in the ZKVote system');
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [feedbackText, setFeedbackText] = useState('');
+  const [selectedSentiment, setSelectedSentiment] = useState(null);
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
 
-  const handleMintNFT = async () => {
-    if (!ipfsHash) {
-      alert('Please enter an IPFS hash');
-      return;
-    }
+  const generateNFTImage = async () => {
+    const svg = `
+      <svg width="500" height="500" xmlns="http://www.w3.org/2000/svg">
+        <rect width="100%" height="100%" fill="#4f46e5"/>
+        <circle cx="250" cy="250" r="200" fill="#312e81"/>
+        <text x="50%" y="40%" text-anchor="middle" fill="white" font-size="40" font-family="Arial">ZKVote</text>
+        <text x="50%" y="50%" text-anchor="middle" fill="white" font-size="20" font-family="Arial">Voting Participation</text>
+        <text x="50%" y="60%" text-anchor="middle" fill="white" font-size="16" font-family="Arial">${commitment.slice(0, 12)}...</text>
+      </svg>
+    `;
     
     try {
+      const formData = new FormData();
+      const blob = new Blob([svg], { type: 'image/svg+xml' });
+      formData.append('file', blob, 'vote-nft.svg');
+      
+      const res = await axios.post('https://api.pinata.cloud/pinning/pinFileToIPFS', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'pinata_api_key': PINATA_API_KEY,
+          'pinata_secret_api_key': PINATA_SECRET_API_KEY
+        }
+      });
+      
+      const imageHash = res.data.IpfsHash;
+      setNftImage(`https://ipfs.io/ipfs/${imageHash}`);
+      return imageHash;
+    } catch (error) {
+      console.error('Error uploading NFT image:', error);
+      throw error;
+    }
+  };
+
+  const generateMetadata = async (imageHash) => {
+    const metadata = {
+      name: nftName,
+      description: nftDescription,
+      image: `https://ipfs.io/ipfs/${imageHash}`,
+      attributes: [
+        {
+          trait_type: "Commitment",
+          value: commitment
+        },
+        {
+          trait_type: "Nullifier",
+          value: nullifier
+        },
+        {
+          trait_type: "Type",
+          value: "Voting Participation"
+        }
+      ]
+    };
+    
+    try {
+      const res = await axios.post('https://api.pinata.cloud/pinning/pinJSONToIPFS', metadata, {
+        headers: {
+          'pinata_api_key': PINATA_API_KEY,
+          'pinata_secret_api_key': PINATA_SECRET_API_KEY
+        }
+      });
+      
+      return res.data.IpfsHash;
+    } catch (error) {
+      console.error('Error uploading metadata:', error);
+      throw error;
+    }
+  };
+
+  const submitFeedback = async () => {
+    // if (!selectedSentiment || !feedbackText.trim()) {
+    //   alert("Please select a sentiment and provide feedback");
+    //   return;
+    // }
+  
+    setIsSubmittingFeedback(true);
+    
+    try {
+      const response = await fetch('http://localhost:5000/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: feedbackText,
+          userId: currentUser?.uid,
+          electionId: "election-1",
+          sentiment: selectedSentiment // Include the selected sentiment
+        }),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+  
+      const result = await response.json();
+      
+      if (currentUser) {
+        const db = getFirestore();
+        await setDoc(doc(db, "sentiments", `${currentUser.uid}_${Date.now()}`), {
+          text: feedbackText,
+          sentiment: selectedSentiment,
+          serverResponse: result,
+          electionId: "election-1",
+          userId: currentUser.uid,
+          timestamp: new Date().toISOString()
+        });
+      }
+  
+      setFeedbackSubmitted(true);
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+      alert(`Failed to submit feedback: ${error.message}. Please check your connection and try again.`);
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  };
+
+  const handleMintNFT = async () => {
+    try {
       setMinting(true);
-      await onMintNFT(ipfsHash);
+      const imageHash = await generateNFTImage();
+      const metadataHash = await generateMetadata(imageHash);
+      await onMintNFT(`ipfs://${metadataHash}`);
+      
       setMinted(true);
-      setMinting(false);
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 5000);
     } catch (error) {
       console.error('Error minting NFT:', error);
       setMinting(false);
       alert('Failed to mint NFT: ' + error.message);
+    } finally {
+      setMinting(false);
     }
   };
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+    <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 relative overflow-hidden">
+      {showConfetti && <Confetti recycle={false} numberOfPieces={500} />}
+      
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-2xl font-bold text-indigo-600">Your Vote NFT</h3>
         <button 
@@ -207,15 +342,25 @@ const NFTViewer = ({ commitment, nullifier, onClose, onMintNFT }) => {
             <p className="text-gray-600 mb-4">This NFT will represent your anonymous vote on the blockchain</p>
             
             <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-medium mb-2">IPFS Hash for Metadata</label>
+              <label className="block text-gray-700 text-sm font-medium mb-2">NFT Name</label>
               <input
                 type="text"
-                value={ipfsHash}
-                onChange={(e) => setIpfsHash(e.target.value)}
+                value={nftName}
+                onChange={(e) => setNftName(e.target.value)}
                 className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-800 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                placeholder="Qm... or bafy..."
+                placeholder="My Voting NFT"
               />
-              <p className="mt-1 text-xs text-gray-500">Enter the IPFS hash for your NFT metadata</p>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-medium mb-2">NFT Description</label>
+              <textarea
+                value={nftDescription}
+                onChange={(e) => setNftDescription(e.target.value)}
+                className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-800 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="Description of your voting NFT"
+                rows="3"
+              />
             </div>
           </div>
           
@@ -236,21 +381,35 @@ const NFTViewer = ({ commitment, nullifier, onClose, onMintNFT }) => {
           </button>
         </div>
       ) : (
-        <div className="bg-gray-50 rounded-lg shadow-sm p-6 mb-6 border border-gray-200">
-          <div className="w-full h-64 bg-gradient-to-br from-indigo-100 to-blue-100 rounded-lg flex items-center justify-center mb-6">
-            <svg className="w-32 h-32 text-indigo-500" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
-            </svg>
-          </div>
-          
-          <div className="px-2">
-            <h4 className="font-bold text-gray-800 mb-2">Vote Verification NFT</h4>
-            <p className="text-sm text-gray-600 mb-4">Your voting NFT has been successfully minted!</p>
+        <div>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-gray-50 rounded-lg shadow-sm p-6 mb-6 border border-gray-200"
+          >
+            <div className="flex items-center justify-center mb-4">
+              <FaCheckCircle className="text-4xl text-green-500 mr-3" />
+              <h2 className="text-xl font-bold text-gray-800">NFT Minted Successfully!</h2>
+            </div>
+            
+            <div className="relative mx-auto w-full h-64 rounded-lg overflow-hidden border-4 border-indigo-600 shadow-lg mb-6">
+              {nftImage ? (
+                <img src={nftImage} alt="Voting NFT" className="w-full h-full object-cover" />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white">
+                  <span className="text-2xl">NFT Preview</span>
+                </div>
+              )}
+            </div>
             
             <div className="space-y-4">
               <div>
-                <p className="text-xs text-gray-500 mb-1">IPFS Hash</p>
-                <p className="text-sm bg-gray-100 p-2 rounded font-mono break-all text-gray-700">{ipfsHash}</p>
+                <p className="text-xs text-gray-500 mb-1">NFT Name</p>
+                <p className="text-sm bg-gray-100 p-2 rounded font-medium text-gray-700">{nftName}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Description</p>
+                <p className="text-sm bg-gray-100 p-2 rounded font-medium text-gray-700">{nftDescription}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-500 mb-1">Commitment</p>
@@ -261,7 +420,76 @@ const NFTViewer = ({ commitment, nullifier, onClose, onMintNFT }) => {
                 <p className="text-sm bg-gray-100 p-2 rounded font-mono break-all text-gray-700">{nullifier}</p>
               </div>
             </div>
-          </div>
+          </motion.div>
+
+          {!feedbackSubmitted && !isClosing ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }} // Add exit animation for smoother closing
+              className="mt-6 p-4 bg-gray-50 rounded-lg"
+            >
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Share your voting experience</h3>
+
+              <div className="flex justify-center space-x-4 mb-4">
+                <button
+                  onClick={() => setSelectedSentiment('positive')}
+                  className={`p-3 rounded-full ${selectedSentiment === 'positive' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'}`}
+                >
+                  <FaSmile className="text-2xl" />
+                  <span className="text-xs mt-1 block">Positive</span>
+                </button>
+                <button
+                  onClick={() => setSelectedSentiment('neutral')}
+                  className={`p-3 rounded-full ${selectedSentiment === 'neutral' ? 'bg-yellow-100 text-yellow-600' : 'bg-gray-100 text-gray-500'}`}
+                >
+                  <FaMeh className="text-2xl" />
+                  <span className="text-xs mt-1 block">Neutral</span>
+                </button>
+                <button
+                  onClick={() => setSelectedSentiment('negative')}
+                  className={`p-3 rounded-full ${selectedSentiment === 'negative' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'}`}
+                >
+                  <FaFrown className="text-2xl" />
+                  <span className="text-xs mt-1 block">Negative</span>
+                </button>
+              </div>
+
+              <textarea
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                placeholder="Tell us about your voting experience..."
+                className="w-full p-3 border border-gray-300 rounded-lg mb-3"
+                rows="3"
+              />
+
+              <div className="flex justify-end space-x-2">
+                <button
+                  onClick={onClose}
+                  disabled={isSubmittingFeedback}
+                  className="py-2 px-4 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 disabled:bg-gray-200"
+                >
+                  Skip
+                </button>
+                <button
+                  onClick={submitFeedbackAndClose}
+                  disabled={isSubmittingFeedback}
+                  className="py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-indigo-300"
+                >
+                  {isSubmittingFeedback ? 'Submitting...' : 'Submit Feedback'}
+                </button>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }} // Add exit animation here as well
+      className="mt-4 p-3 bg-green-50 text-green-700 rounded-lg"
+            >
+              Thank you for your feedback! Your response helps improve the voting experience.
+            </motion.div>
+          )}
         </div>
       )}
       
@@ -295,10 +523,9 @@ const ZKVote = () => {
   const [ipError, setIpError] = useState(null);
   const [electionDetails, setElectionDetails] = useState(null);
   const [locationVerified, setLocationVerified] = useState(false);
-  
-  // Properly handle the topic ID from URL params
-  const { id } = useParams();
-  const topicId = id ? parseInt(id, 10) : null;
+  const [topicIdInput, setTopicIdInput] = useState('');
+  const [topicId, setTopicId] = useState(null);
+  const { currentUser } = useAuth();
 
   // Connect wallet
   const connectWallet = async () => {
@@ -364,22 +591,16 @@ const ZKVote = () => {
       const db = getFirestore();
       const querySnapshot = await getDocs(
         query(collection(db, "elections"), 
-        where("id", "==", topicId.toString()) // Ensure string comparison
+        where("id", "==", id)
       ));
       
       if (!querySnapshot.empty) {
         const docSnapshot = querySnapshot.docs[0];
         const electionData = docSnapshot.data();
-        
-        // Convert string IDs to numbers for consistency
-        if (electionData.id) {
-          electionData.id = parseInt(electionData.id, 10);
-        }
-        
         setElectionDetails(electionData);
         return electionData;
       } else {
-        console.log("No election found with id:", topicId);
+        console.log("No election found with id:", id);
         setElectionDetails(null);
         return null;
       }
@@ -389,7 +610,6 @@ const ZKVote = () => {
       return null;
     }
   };
-
 
   // Verify if user's location matches the election location
   const verifyLocation = (ipData, electionData) => {
@@ -414,25 +634,43 @@ const ZKVote = () => {
     }
   };
   
-  // Fetch topic details when component mounts or id changes
-  useEffect(() => {
-    if (id) {
-      // console.log(id)
-      fetchTopicDetails();
-      // console.log(id)
+  // Handle topic ID submission
+  const handleTopicIdSubmit = () => {
+    if (!topicIdInput) {
+      setMessage('Please enter a topic ID');
+      setMessageType('error');
+      return;
     }
-
-  }, [id]);
+    
+    try {
+      const numericId = ethers.BigNumber.from(topicIdInput).toNumber();
+      setTopicId(numericId);
+      setTopicIdInput('');
+    } catch (error) {
+      setMessage('Invalid topic ID format');
+      setMessageType('error');
+    }
+  };
+  
+  // Fetch topic details when topicId or contract changes
+  useEffect(() => {
+    const fetchData = async () => {
+      if (topicId !== null) {
+        await fetchTopicDetails();
+      }
+    };
+    fetchData();
+  }, [topicId, contract]);
 
   // Fetch topic details
   const fetchTopicDetails = async () => {
-    if (!contract || !numericTopicId) return
+    if (!contract || topicId === null) return;
     
     try {
       setLoading(true);
-      console.log(id)
+      
       // 1. Fetch blockchain topic details
-      const details = await contract.getTopicDetails(numericTopicId);
+      const details = await contract.getTopicDetails(topicId);
       setTopicDetails({
         name: details.name,
         description: details.description,
@@ -446,8 +684,8 @@ const ZKVote = () => {
         voteCounts: details.voteCounts.map(count => count.toString())
       });
       
-      // 2. Fetch Firebase election details
-      await fetchElectionDetails(id);
+      // 2. Fetch Firebase election details using the string version of topicId
+      await fetchElectionDetails(topicId.toString());
       
       // 3. Fetch IP location data if not already fetched
       if (!ipData) {
@@ -507,7 +745,7 @@ const ZKVote = () => {
   
   // Submit vote
   const submitVote = async () => {
-    if (!contract || !id || !nullifier || !commitment || !topicDetails) {
+    if (!contract || topicId === null || !nullifier || !commitment || !topicDetails) {
       setMessage('Please fill all required fields');
       setMessageType('error');
       return;
@@ -519,11 +757,11 @@ const ZKVote = () => {
       return;
     }
     
-    if (!locationVerified) {
-      setMessage('Your location does not match the required location for this election');
-      setMessageType('error');
-      return;
-    }
+    // if (!locationVerified) {
+    //   setMessage('Your location does not match the required location for this election');
+    //   setMessageType('error');
+    //   return;
+    // }
     
     try {
       setLoading(true);
@@ -544,7 +782,7 @@ const ZKVote = () => {
       }
       
       const tx = await contract.vote(
-        numericTopicId,
+        topicId,
         nullifierBytes32,
         commitmentBytes32,
         locationProof || '',
@@ -638,6 +876,28 @@ const ZKVote = () => {
             </div>
           )}
         </div>
+
+        {/* Topic ID Input */}
+        {!topicId && (
+          <div className="bg-white rounded-xl shadow-sm p-8 mb-8 border border-gray-200">
+            <h3 className="text-xl font-medium text-gray-700 mb-4">Enter Voting Topic ID</h3>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <input
+                type="text"
+                value={topicIdInput}
+                onChange={(e) => setTopicIdInput(e.target.value)}
+                className="flex-grow px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="Enter topic ID (e.g., 1, 2, 3...)"
+              />
+              <button
+                onClick={handleTopicIdSubmit}
+                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-all font-medium"
+              >
+                Load Topic
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Main Content */}
         {loading && !topicDetails ? (
@@ -826,7 +1086,7 @@ const ZKVote = () => {
                   
                   <button
                     onClick={submitVote}
-                    disabled={!connected || loading || !topicDetails.isVotingOpen || !nullifier || !commitment || selectedChoices.length === 0 || !locationVerified}
+                    disabled={!connected || loading || !topicDetails.isVotingOpen || !nullifier || !commitment || selectedChoices.length === 0 }
                     className="w-full px-6 py-4 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-lg hover:from-indigo-700 hover:to-blue-700 transition-all disabled:from-gray-400 disabled:to-gray-500 font-medium text-lg shadow-sm"
                   >
                     {loading ? (
@@ -837,21 +1097,13 @@ const ZKVote = () => {
                         </svg>
                         Submitting Vote...
                       </span>
-                    ) : !locationVerified ? 'Location Verification Required' : 'Submit Vote'}
+                    ) : 'Submit Vote'}
                   </button>
                 </div>
               </div>
             </div>
           </div>
-        ) : (
-          <div className="bg-white rounded-xl shadow-sm p-8 text-center border border-gray-200">
-            <h3 className="text-xl font-medium text-gray-700 mb-4">No voting topic selected</h3>
-            <p className="text-gray-500 mb-6">Please check the URL and try again</p>
-            <Link to="/" className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
-              Back to Home
-            </Link>
-          </div>
-        )}
+        ) : null}
         
         {/* Footer */}
         <div className="mt-8 text-center text-gray-500 text-sm">
